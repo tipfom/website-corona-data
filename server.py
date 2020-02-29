@@ -25,13 +25,13 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.send_response(201)
             new_token = generateToken(20)
             valid_tokens.append(new_token)
-            self.send_header('Access-Control-Allow-Credentials', 'true')
-            self.send_header('Access-Control-Allow-Origin',
-                            'http://localhost:4200')
+            self.send_header('Access-Control-Allow-Origin', 'http://localhost:4200')
             self.end_headers()
             self.wfile.write(("{\"token\":\"" + new_token+"\"}").encode())
         else:
             self.send_response(401)
+            self.send_header('Access-Control-Allow-Origin', 'http://localhost:4200')
+
             self.end_headers()
 
         # self.wfile.write(json.dumps(response))
