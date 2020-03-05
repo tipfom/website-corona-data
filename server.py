@@ -6,6 +6,7 @@ import mysql.connector
 from urllib.parse import urlparse
 from random import randint
 import uuid
+import base64
 
 PROTOCOL_VERSION = "0.1"
 
@@ -39,15 +40,15 @@ class RequestHandler(BaseHTTPRequestHandler):
         if parsed_path.path.startswith("/resource/"):
             splitted = parsed_path.path.split("/")
             if len(splitted) == 3:
-                id = splitted[2]
-                sql_query = "SELECT type FROM entries WHERE uuid={}".format(id)
+                id = base64.urlsafe_b64decode(splitted[2].encode()).hex()
+                sql_query = "SELECT type FROM entries WHERE uuid=X'{}'".format(id)
                 mysql_cursor.execute(sql_query)
                 row = mysql_cursor.fetchone()
                 if row != None:
                     self.send_response(200)
                     self.end_headers()
                     self.wfile.write((row[0] + "\n").encode())
-                    sql_query = "SELECT path FROM resources WHERE entry_uuid=X{}".format(
+                    sql_query = "SELECT path FROM resources WHERE entry_uuid=X'{}'".format(
                         id
                     )
                     mysql_cursor.execute(sql_query)
@@ -74,21 +75,21 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         elif parsed_path.path.startswith("/resource"):
             if valid_tokens.__contains__(post_parsed_content["token"]):
-                id = uuid.uuid4().hex
+                id = uuid.uuid4()
                 sql_query = "INSERT INTO entries (uuid, type) VALUES (X'{}', '{}');".format(
-                    id, post_parsed_content["type"]
+                    id.hex, post_parsed_content["type"]
                 )
                 mysql_cursor.execute(sql_query)
                 for f in post_parsed_content["files"]:
                     sql_query = "INSERT INTO resources (entry_uuid, path) VALUES (X'{}', '{}');".format(
-                        id, f
+                        id.hex, f
                     )
                     mysql_cursor.execute(sql_query)
                 mysql_conn.commit()
                 self.send_response(200)
                 self.send_header("Access-Control-Allow-Origin", "http://localhost:4200")
                 self.end_headers()
-                self.wfile.write(id.encode())
+                self.wfile.write(base64.urlsafe_b64encode(id.bytes))
 
             else:
                 self.send_response(401)
