@@ -56,11 +56,11 @@ class RequestHandler(BaseHTTPRequestHandler):
                         self.wfile.write((row[0] + "\n").encode())
 
     def do_POST(self):
-        content_len = int(self.headers.get("Content-Length"))
-        post_content = self.rfile.read(content_len)
-        post_parsed_content = json.loads(post_content)
         parsed_path = urlparse(self.path)
         if parsed_path.path.startswith("/login"):
+            content_len = int(self.headers.get("Content-Length"))
+            post_content = self.rfile.read(content_len)
+            post_parsed_content = json.loads(post_content)
             if post_parsed_content["password"] == "defg":
                 self.send_response(201)
                 new_token = generateToken(20)
@@ -74,6 +74,9 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
 
         elif parsed_path.path.startswith("/resource"):
+            content_len = int(self.headers.get("Content-Length"))
+            post_content = self.rfile.read(content_len)
+            post_parsed_content = json.loads(post_content)
             if valid_tokens.__contains__(post_parsed_content["token"]):
                 id = uuid.uuid4()
                 sql_query = "INSERT INTO entries (uuid, type) VALUES (X'{}', '{}');".format(
@@ -95,6 +98,14 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.send_response(401)
                 self.send_header("Access-Control-Allow-Origin", "http://localhost:4200")
                 self.end_headers()
+        elif parsed_path.path.startswith("/upload/"):
+            self.send_response(200)
+            self.send_header("Access-Control-Allow-Origin", "http://localhost:4200")
+            self.end_headers()
+            content_len = int(self.headers.get("Content-Length"))
+            post_content = self.rfile.read(content_len)
+            with open("test.jpg","wb") as f:
+                f.write(post_content)
 
     def do_OPTIONS(self):
         self.send_response(200)
