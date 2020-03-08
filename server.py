@@ -1,23 +1,19 @@
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import logging
-import json
-from random import randrange
-import mysql.connector
-from urllib.parse import urlparse
-from random import randint
-import uuid
 import base64
+import json
+import logging
+import uuid
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from random import randint, randrange
+from urllib.parse import urlparse
+
+import mysql.connector
+
+from config import *
 
 PROTOCOL_VERSION = "0.1"
 
 ALLOWED_TOKEN_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 valid_tokens = []
-
-mysql_host = "tim-nas"  # Rechnername (localhost ist dein eigener Rechner)
-mysql_port = 3307
-mysql_user = "admin"
-mysql_pass = "YNy2*rJAck%DcS^#"
-mysql_db = "website_cms"
 
 # Verbindung mit der Datenbank
 mysql_conn = mysql.connector.connect(
@@ -41,7 +37,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             splitted = parsed_path.path.split("/")
             if len(splitted) == 3:
                 try:
-                    id = base64.urlsafe_b64decode(splitted[2]+ "==").hex()
+                    id = base64.urlsafe_b64decode(splitted[2] + "==").hex()
                 except Exception:
                     self.send_response(400)
                     self.end_headers()
@@ -52,7 +48,9 @@ class RequestHandler(BaseHTTPRequestHandler):
                 row = mysql_cursor.fetchone()
                 if row != None:
                     self.send_response(200)
-                    self.send_header("Access-Control-Allow-Origin", "http://localhost:4200")
+                    self.send_header(
+                        "Access-Control-Allow-Origin", "http://localhost:4200"
+                    )
                     self.end_headers()
                     self.wfile.write((row[0] + "\n").encode())
                     sql_query = "SELECT path FROM resources WHERE entry_uuid=X'{}'".format(
@@ -117,7 +115,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             content_len = int(self.headers.get("Content-Length"))
             post_content = self.rfile.read(content_len)
-            with open("test.jpg","wb") as f:
+            with open("test.jpg", "wb") as f:
                 f.write(post_content)
 
     def do_OPTIONS(self):
