@@ -40,12 +40,19 @@ class RequestHandler(BaseHTTPRequestHandler):
         if parsed_path.path.startswith("/resource/"):
             splitted = parsed_path.path.split("/")
             if len(splitted) == 3:
-                id = base64.urlsafe_b64decode(splitted[2].encode()).hex()
+                try:
+                    id = base64.urlsafe_b64decode(splitted[2]+ "==").hex()
+                except Exception:
+                    self.send_response(400)
+                    self.end_headers()
+                    return
+
                 sql_query = "SELECT type FROM entries WHERE uuid=X'{}'".format(id)
                 mysql_cursor.execute(sql_query)
                 row = mysql_cursor.fetchone()
                 if row != None:
                     self.send_response(200)
+                    self.send_header("Access-Control-Allow-Origin", "http://localhost:4200")
                     self.end_headers()
                     self.wfile.write((row[0] + "\n").encode())
                     sql_query = "SELECT path FROM resources WHERE entry_uuid=X'{}'".format(
@@ -54,6 +61,12 @@ class RequestHandler(BaseHTTPRequestHandler):
                     mysql_cursor.execute(sql_query)
                     for row in mysql_cursor.fetchall():
                         self.wfile.write((row[0] + "\n").encode())
+                else:
+                    self.send_response(404)
+                    self.end_headers()
+            else:
+                self.send_response(400)
+                self.end_headers()
 
     def do_POST(self):
         parsed_path = urlparse(self.path)
