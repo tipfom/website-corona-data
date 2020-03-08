@@ -4,7 +4,7 @@ import logging
 import uuid
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from random import randint, randrange
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 import mysql.connector
 
@@ -14,6 +14,9 @@ PROTOCOL_VERSION = "0.1"
 
 ALLOWED_TOKEN_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 valid_tokens = []
+
+if not os.path.exists(res_folder):
+    os.mkdir(res_folder)
 
 # Verbindung mit der Datenbank
 mysql_conn = mysql.connector.connect(
@@ -33,8 +36,8 @@ def generateToken(length):
 class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed_path = urlparse(self.path)
-        if parsed_path.path.startswith("/resource/"):
-            splitted = parsed_path.path.split("/")
+        splitted = parsed_path.path.split("/")
+        if splitted[1] == "resource":
             if len(splitted) == 3:
                 try:
                     id = base64.urlsafe_b64decode(splitted[2] + "==").hex()
@@ -52,22 +55,40 @@ class RequestHandler(BaseHTTPRequestHandler):
                         "Access-Control-Allow-Origin", "http://localhost:4200"
                     )
                     self.end_headers()
-                    self.wfile.write((row[0] + "\n").encode())
+                    self.wfile.write((row[0]).encode())
                     sql_query = "SELECT path FROM resources WHERE entry_uuid=X'{}'".format(
                         id
                     )
                     mysql_cursor.execute(sql_query)
                     for row in mysql_cursor.fetchall():
-                        self.wfile.write((row[0] + "\n").encode())
+                        self.wfile.write(("\n" + row[0]).encode())
                 else:
                     self.send_response(404)
                     self.end_headers()
             else:
                 self.send_response(400)
                 self.end_headers()
+        elif splitted[1] == "file":
+            with open(res_folder + splitted[2] + ".json") as f:
+                infofile_parsed = json.loads(f.read())
+                extension = infofile_parsed["extension"]
+                filetype = infofile_parsed["filetype"]
+                filename = infofile_parsed["filename"]
+
+                self.send_response(200)
+                self.send_header("Content-Type", filetype)
+                self.send_header(
+                    "Content-Disposition",
+                    'attachment; filename="' + filename + "." + extension,
+                )
+                self.send_header("Access-Control-Allow-Origin", "http://localhost:4200")
+                self.end_headers()
+                with open(res_folder + splitted[2] + "." + extension, "rb") as f:
+                    self.wfile.write(f.read())
 
     def do_POST(self):
         parsed_path = urlparse(self.path)
+        parsed_query = parse_qs(parsed_path.query)
         if parsed_path.path.startswith("/login"):
             content_len = int(self.headers.get("Content-Length"))
             post_content = self.rfile.read(content_len)
@@ -94,9 +115,9 @@ class RequestHandler(BaseHTTPRequestHandler):
                     id.hex, post_parsed_content["type"]
                 )
                 mysql_cursor.execute(sql_query)
-                for f in post_parsed_content["files"]:
+                for blobfile in post_parsed_content["files"]:
                     sql_query = "INSERT INTO resources (entry_uuid, path) VALUES (X'{}', '{}');".format(
-                        id.hex, f
+                        id.hex, blobfile
                     )
                     mysql_cursor.execute(sql_query)
                 mysql_conn.commit()
@@ -115,8 +136,22 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             content_len = int(self.headers.get("Content-Length"))
             post_content = self.rfile.read(content_len)
-            with open("test.jpg", "wb") as f:
-                f.write(post_content)
+            filename = str(uuid.uuid4().hex)
+            with open(
+                res_folder + filename + "." + parsed_query["e"][0], "wb+"
+            ) as blobfile:
+                blobfile.write(post_content)
+            with open(res_folder + filename + ".json", "w+") as infofile:
+                json.dump(
+                    {
+                        "extension": parsed_query["e"][0],
+                        "filetype": parsed_query["t"][0],
+                        "filename": parsed_query["n"][0],
+                    },
+                    infofile,
+                )
+
+            self.wfile.write(filename.encode())
 
     def do_OPTIONS(self):
         self.send_response(200)
