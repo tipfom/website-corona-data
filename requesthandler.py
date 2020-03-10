@@ -75,34 +75,33 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
             self.wfile.write(str(is_authorized).encode())
-        elif not is_authorized:
-            if splitted[1] == "resource":
-                if len(splitted) == 3:
-                    try:
-                        id = base64.urlsafe_b64decode(splitted[2] + "==").hex()
-                    except Exception:
-                        self.send_response(400)
-                        self.end_headers()
-                        return
-
-                    sql_query = "SELECT type FROM entries WHERE uuid=X'%s'"
-                    self.sqlConnection.execute(sql_query, (id))
-                    row = self.sqlConnection.fetchone()
-                    if row != None:
-                        self.send_response(200)
-                        self.send_header("Access-Control-Allow-Origin", "*")
-                        self.end_headers()
-                        self.wfile.write((row[0]).encode())
-                        sql_query = "SELECT path FROM resources WHERE entry_uuid=X'%s'"
-                        self.sqlConnection.execute(sql_query, (id))
-                        for row in self.sqlConnection.fetchall():
-                            self.wfile.write(("\n" + row[0]).encode())
-                    else:
-                        self.send_response(404)
-                        self.end_headers()
-                else:
+        elif splitted[1] == "resource":
+            if len(splitted) == 3:
+                try:
+                    id = base64.urlsafe_b64decode(splitted[2] + "==").hex()
+                except Exception:
                     self.send_response(400)
                     self.end_headers()
+                    return
+
+                sql_query = f"SELECT type FROM entries WHERE uuid=X'{id}'"
+                self.sqlConnection.execute(sql_query)
+                row = self.sqlConnection.fetchone()
+                if row != None:
+                    self.send_response(200)
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.end_headers()
+                    self.wfile.write((row[0]).encode())
+                    sql_query = f"SELECT path FROM resources WHERE entry_uuid=X'{id}'"
+                    self.sqlConnection.execute(sql_query)
+                    for row in self.sqlConnection.fetchall():
+                        self.wfile.write(("\n" + row[0]).encode())
+                else:
+                    self.send_response(404)
+                    self.end_headers()
+            else:
+                self.send_response(400)
+                self.end_headers()
         else:
             self.send_response(401)
             self.end_headers()
