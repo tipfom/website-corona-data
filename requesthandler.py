@@ -1,14 +1,22 @@
 import base64
 import json
+import os
 import uuid
 from http.server import BaseHTTPRequestHandler
 from random import randint, randrange
 from urllib.parse import parse_qs, urlparse
 
+from mysqlconnection import getMySQLCursor, openMySQLConnection, closeMySQLConnection
+
 from config import res_folder
 
 ALLOWED_TOKEN_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 valid_tokens = []
+
+
+if not os.path.exists(res_folder):
+    os.mkdir(res_folder)
+
 
 def generateToken(length):
     token = ""
@@ -18,8 +26,13 @@ def generateToken(length):
 
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):
-    def __init__(self, mysql_cursor):
-        self.mysql_cursor = mysql_cursor
+    def __init__(self, request, client_address, server):
+        self.mysql_conn = openMySQLConnection()
+        self.mysql_cursor = getMySQLCursor()
+        super().__init__(request, client_address, server)
+
+    def __del__(self):
+        closeMySQLConnection()
 
     def do_GET(self):
         parsed_path = urlparse(self.path)
@@ -37,14 +50,29 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                         self.send_response(200)
                         self.send_header("Content-Type", filetype)
                         self.send_header(
-                            "Content-Disposition",
-                            'inline; filename="' + filename + "." + extension,
+                            "Content-Disposition", 'inline; filename="' + filename,
                         )
-                        self.send_header("Access-Control-Allow-Origin", "http://localhost:4200")
+
+                        self.send_header(
+                            "Content-Length",
+                            str(
+                                os.stat(
+                                    res_folder + splitted[2] + "." + extension
+                                ).st_size
+                            ),
+                        )
+                        self.send_header(
+                            "Access-Control-Allow-Origin", "http://localhost:4200"
+                        )
                         self.end_headers()
-                        
-                        self.wfile.write(f.read())
-            except Exception:
+
+                        while True:
+                            data = f.read(1024)
+                            if not data:
+                                break
+                            self.wfile.write(data)
+            except Exception as e:
+                print(e)
                 self.send_response(404)
                 self.end_headers()
 
@@ -123,7 +151,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                         id.hex, blobfile
                     )
                     self.mysql_cursor.execute(sql_query)
-                self.mysql_cursor.commit()
+                self.mysql_conn.commit()
                 self.send_response(200)
                 self.send_header("Access-Control-Allow-Origin", "http://localhost:4200")
                 self.end_headers()
