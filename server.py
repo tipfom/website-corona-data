@@ -2,6 +2,7 @@ import base64
 import json
 import logging
 import uuid
+import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from random import randint, randrange
 from urllib.parse import urlparse, parse_qs
@@ -36,39 +37,9 @@ def generateToken(length):
 class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed_path = urlparse(self.path)
+        is_public = self.headers.__contains__("PROXY")
         splitted = parsed_path.path.split("/")
-        if splitted[1] == "resource":
-            if len(splitted) == 3:
-                try:
-                    id = base64.urlsafe_b64decode(splitted[2] + "==").hex()
-                except Exception:
-                    self.send_response(400)
-                    self.end_headers()
-                    return
-
-                sql_query = "SELECT type FROM entries WHERE uuid=X'{}'".format(id)
-                mysql_cursor.execute(sql_query)
-                row = mysql_cursor.fetchone()
-                if row != None:
-                    self.send_response(200)
-                    self.send_header(
-                        "Access-Control-Allow-Origin", "http://localhost:4200"
-                    )
-                    self.end_headers()
-                    self.wfile.write((row[0]).encode())
-                    sql_query = "SELECT path FROM resources WHERE entry_uuid=X'{}'".format(
-                        id
-                    )
-                    mysql_cursor.execute(sql_query)
-                    for row in mysql_cursor.fetchall():
-                        self.wfile.write(("\n" + row[0]).encode())
-                else:
-                    self.send_response(404)
-                    self.end_headers()
-            else:
-                self.send_response(400)
-                self.end_headers()
-        elif splitted[1] == "file":
+        if splitted[1] == "file":
             with open(res_folder + splitted[2] + ".json") as f:
                 infofile_parsed = json.loads(f.read())
                 extension = infofile_parsed["extension"]
@@ -79,14 +50,55 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.send_header("Content-Type", filetype)
                 self.send_header(
                     "Content-Disposition",
-                    'attachment; filename="' + filename + "." + extension,
+                    'inline; filename="' + filename + "." + extension,
                 )
                 self.send_header("Access-Control-Allow-Origin", "http://localhost:4200")
                 self.end_headers()
                 with open(res_folder + splitted[2] + "." + extension, "rb") as f:
                     self.wfile.write(f.read())
+        elif not is_public:
+            if splitted[1] == "resource":
+                if len(splitted) == 3:
+                    try:
+                        id = base64.urlsafe_b64decode(splitted[2] + "==").hex()
+                    except Exception:
+                        self.send_response(400)
+                        self.end_headers()
+                        return
+
+                    sql_query = "SELECT type FROM entries WHERE uuid=X'{}'".format(id)
+                    mysql_cursor.execute(sql_query)
+                    row = mysql_cursor.fetchone()
+                    if row != None:
+                        self.send_response(200)
+                        self.send_header(
+                            "Access-Control-Allow-Origin", "http://localhost:4200"
+                        )
+                        self.end_headers()
+                        self.wfile.write((row[0]).encode())
+                        sql_query = "SELECT path FROM resources WHERE entry_uuid=X'{}'".format(
+                            id
+                        )
+                        mysql_cursor.execute(sql_query)
+                        for row in mysql_cursor.fetchall():
+                            self.wfile.write(("\n" + row[0]).encode())
+                    else:
+                        self.send_response(404)
+                        self.end_headers()
+                else:
+                    self.send_response(400)
+                    self.end_headers()
+        else:
+            self.send_response(401)
+            self.end_headers()
+
 
     def do_POST(self):
+        if self.headers.__contains__("PROXY"):
+            self.send_response(401)
+            self.end_headers()
+            return
+
         parsed_path = urlparse(self.path)
         parsed_query = parse_qs(parsed_path.query)
         if parsed_path.path.startswith("/login"):
@@ -163,7 +175,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 def run(server_class=HTTPServer, handler_class=RequestHandler, port=5764):
     logging.basicConfig(level=logging.INFO)
-    server_address = ("localhost", port)
+    server_address = ("0.0.0.0", port)
     httpd = server_class(server_address, handler_class)
     logging.info("Starting httpd...\n")
     try:
