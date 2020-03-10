@@ -45,9 +45,11 @@ class MySqlConnection:
         return self._mysql_cursor.execute(cmd)
 
     def fetchone(self):
+        self.checkConnection()
         return self._mysql_cursor.fetchone()
 
     def fetchall(self):
+        self.checkConnection()
         return self._mysql_cursor.fetchall()
 
     def commit(self):
