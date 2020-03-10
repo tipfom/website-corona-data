@@ -36,7 +36,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         parsed_path = urlparse(self.path)
-        is_public = self.headers.__contains__("PROXY")
+        is_authorized = self.headers.__contains__("LOGIN-TOKEN") and valid_tokens.__contains__(self.headers.get("LOGIN-TOKEN"))
         splitted = parsed_path.path.split("/")
         if splitted[1] == "file":
             try:
@@ -62,7 +62,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                             ),
                         )
                         self.send_header(
-                            "Access-Control-Allow-Origin", "http://localhost:4200"
+                            "Access-Control-Allow-Origin", "*"
                         )
                         self.end_headers()
 
@@ -76,7 +76,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_response(404)
                 self.end_headers()
 
-        elif not is_public:
+        elif not is_authorized:
             if splitted[1] == "resource":
                 if len(splitted) == 3:
                     try:
@@ -92,7 +92,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                     if row != None:
                         self.send_response(200)
                         self.send_header(
-                            "Access-Control-Allow-Origin", "http://localhost:4200"
+                            "Access-Control-Allow-Origin", "*"
                         )
                         self.end_headers()
                         self.wfile.write((row[0]).encode())
@@ -113,10 +113,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def do_POST(self):
-        if self.headers.__contains__("PROXY"):
-            self.send_response(401)
-            self.end_headers()
-            return
+        is_authorized = self.headers.__contains__("LOGIN-TOKEN") and valid_tokens.__contains__(self.headers.get("LOGIN-TOKEN"))
 
         parsed_path = urlparse(self.path)
         parsed_query = parse_qs(parsed_path.query)
@@ -128,19 +125,19 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_response(201)
                 new_token = generateToken(20)
                 valid_tokens.append(new_token)
-                self.send_header("Access-Control-Allow-Origin", "http://localhost:4200")
+                self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(('{"token":"' + new_token + '"}').encode())
             else:
                 self.send_response(401)
-                self.send_header("Access-Control-Allow-Origin", "http://localhost:4200")
+                self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
-
-        elif parsed_path.path.startswith("/resource"):
-            content_len = int(self.headers.get("Content-Length"))
-            post_content = self.rfile.read(content_len)
-            post_parsed_content = json.loads(post_content)
-            if valid_tokens.__contains__(post_parsed_content["token"]):
+        elif is_authorized:
+            if parsed_path.path.startswith("/resource"):
+                content_len = int(self.headers.get("Content-Length"))
+                post_content = self.rfile.read(content_len)
+                post_parsed_content = json.loads(post_content)
+                
                 id = uuid.uuid4()
                 content_type = post_parsed_content.get("type")
                 sql_query = f"INSERT INTO entries (uuid, type) VALUES (X'{id.hex}', '{content_type}');"
@@ -150,40 +147,42 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                     self.sqlConnection.execute(sql_query)
                 self.sqlConnection.commit()
                 self.send_response(200)
-                self.send_header("Access-Control-Allow-Origin", "http://localhost:4200")
+                self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 self.wfile.write(base64.urlsafe_b64encode(id.bytes))
 
-            else:
-                self.send_response(401)
-                self.send_header("Access-Control-Allow-Origin", "http://localhost:4200")
+            elif parsed_path.path.startswith("/upload/"):
+                self.send_response(200)
+                self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
-        elif parsed_path.path.startswith("/upload/"):
-            self.send_response(200)
-            self.send_header("Access-Control-Allow-Origin", "http://localhost:4200")
-            self.end_headers()
-            content_len = int(self.headers.get("Content-Length"))
-            post_content = self.rfile.read(content_len)
-            filename = str(uuid.uuid4().hex)
-            with open(
-                res_folder + filename + "." + parsed_query["e"][0], "wb+"
-            ) as blobfile:
-                blobfile.write(post_content)
-            with open(res_folder + filename + ".json", "w+") as infofile:
-                json.dump(
-                    {
-                        "extension": parsed_query["e"][0],
-                        "filetype": parsed_query["t"][0],
-                        "filename": parsed_query["n"][0],
-                    },
-                    infofile,
-                )
+                content_len = int(self.headers.get("Content-Length"))
+                post_content = self.rfile.read(content_len)
+                filename = str(uuid.uuid4().hex)
+                with open(
+                    res_folder + filename + "." + parsed_query["e"][0], "wb+"
+                ) as blobfile:
+                    blobfile.write(post_content)
+                with open(res_folder + filename + ".json", "w+") as infofile:
+                    json.dump(
+                        {
+                            "extension": parsed_query["e"][0],
+                            "filetype": parsed_query["t"][0],
+                            "filename": parsed_query["n"][0],
+                        },
+                        infofile,
+                    )
 
-            self.wfile.write(filename.encode())
+                self.wfile.write(filename.encode())
+            else:
+                self.send_response(404)
+                self.end_headers()
+        else:
+            self.send_response(401)
+            self.end_headers()
 
     def do_OPTIONS(self):
         self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "http://localhost:4200")
+        self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "x-api-key,Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "LOGIN-TOKEN,Content-Type")
         self.end_headers()
