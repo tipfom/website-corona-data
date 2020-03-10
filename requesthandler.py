@@ -26,22 +26,28 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         is_public = self.headers.__contains__("PROXY")
         splitted = parsed_path.path.split("/")
         if splitted[1] == "file":
-            with open(res_folder + splitted[2] + ".json") as f:
-                infofile_parsed = json.loads(f.read())
-                extension = infofile_parsed["extension"]
-                filetype = infofile_parsed["filetype"]
-                filename = infofile_parsed["filename"]
+            try:
+                with open(res_folder + splitted[2] + ".json") as f:
+                    infofile_parsed = json.loads(f.read())
+                    extension = infofile_parsed["extension"]
+                    filetype = infofile_parsed["filetype"]
+                    filename = infofile_parsed["filename"]
 
-                self.send_response(200)
-                self.send_header("Content-Type", filetype)
-                self.send_header(
-                    "Content-Disposition",
-                    'inline; filename="' + filename + "." + extension,
-                )
-                self.send_header("Access-Control-Allow-Origin", "http://localhost:4200")
+                    with open(res_folder + splitted[2] + "." + extension, "rb") as f:
+                        self.send_response(200)
+                        self.send_header("Content-Type", filetype)
+                        self.send_header(
+                            "Content-Disposition",
+                            'inline; filename="' + filename + "." + extension,
+                        )
+                        self.send_header("Access-Control-Allow-Origin", "http://localhost:4200")
+                        self.end_headers()
+                        
+                        self.wfile.write(f.read())
+            except Exception:
+                self.send_response(404)
                 self.end_headers()
-                with open(res_folder + splitted[2] + "." + extension, "rb") as f:
-                    self.wfile.write(f.read())
+
         elif not is_public:
             if splitted[1] == "resource":
                 if len(splitted) == 3:
