@@ -23,11 +23,15 @@ def generateToken(length):
         token += ALLOWED_TOKEN_CHARS[randrange(len(ALLOWED_TOKEN_CHARS))]
     return token
 
-sqlConnection2 = MySqlConnection(mysql_db, mysql_host, mysql_pass, mysql_port, mysql_user)
+
+globalSqlConnection = MySqlConnection(
+    mysql_db, mysql_host, mysql_pass, mysql_port, mysql_user
+)
+
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):
     def __init__(self, request, client_address, server):
-        self.sqlConnection = sqlConnection2
+        self.sqlConnection = globalSqlConnection
         super().__init__(request, client_address, server)
 
     def do_GET(self):
@@ -83,8 +87,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                         return
 
                     sql_query = "SELECT type FROM entries WHERE uuid=X'{}'".format(id)
-                    self.sqlConnection.mysql_cursor.execute(sql_query)
-                    row = self.sqlConnection.mysql_cursor.fetchone()
+                    self.sqlConnection.execute(sql_query)
+                    row = self.sqlConnection.fetchone()
                     if row != None:
                         self.send_response(200)
                         self.send_header(
@@ -95,8 +99,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                         sql_query = "SELECT path FROM resources WHERE entry_uuid=X'{}'".format(
                             id
                         )
-                        self.sqlConnection.mysql_cursor.execute(sql_query)
-                        for row in self.sqlConnection.mysql_cursor.fetchall():
+                        self.sqlConnection.execute(sql_query)
+                        for row in self.sqlConnection.fetchall():
                             self.wfile.write(("\n" + row[0]).encode())
                     else:
                         self.send_response(404)
@@ -138,16 +142,13 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             post_parsed_content = json.loads(post_content)
             if valid_tokens.__contains__(post_parsed_content["token"]):
                 id = uuid.uuid4()
-                sql_query = "INSERT INTO entries (uuid, type) VALUES (X'{}', '{}');".format(
-                    id.hex, post_parsed_content["type"]
-                )
-                self.sqlConnection.mysql_cursor.execute(sql_query)
+                content_type = post_parsed_content.get("type")
+                sql_query = f"INSERT INTO entries (uuid, type) VALUES (X'{id.hex}', '{content_type}');"
+                self.sqlConnection.execute(sql_query)
                 for blobfile in post_parsed_content["files"]:
-                    sql_query = "INSERT INTO resources (entry_uuid, path) VALUES (X'{}', '{}');".format(
-                        id.hex, blobfile
-                    )
-                    self.sqlConnection.mysql_cursor.execute(sql_query)
-                self.sqlConnection.mysql_conn.commit()
+                    sql_query = f"INSERT INTO resources (entry_uuid, path) VALUES (X'{id.hex}', '{blobfile}');"
+                    self.sqlConnection.execute(sql_query)
+                self.sqlConnection.commit()
                 self.send_response(200)
                 self.send_header("Access-Control-Allow-Origin", "http://localhost:4200")
                 self.end_headers()
