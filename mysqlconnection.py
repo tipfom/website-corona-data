@@ -1,32 +1,20 @@
+import logging
+
 import mysql.connector
 
-from config import mysql_db, mysql_host, mysql_pass, mysql_port, mysql_user
-
 # Verbindung mit der Datenbank
-mysql_conn = None
-mysql_cursor = None
+class MySqlConnection():
+    def __init__(self, mysql_db, mysql_host, mysql_pass, mysql_port, mysql_user):
+        self.mysql_conn = mysql.connector.connect(
+            host=mysql_host, port=mysql_port, user=mysql_user, password=mysql_pass
+        )
+        self.mysql_conn.database = mysql_db
+        self.mysql_cursor = self.mysql_conn.cursor()
+        logging.info("MySqlConnection created\n")
 
-
-def getMySQLCursor():
-    return mysql_cursor
-
-
-def openMySQLConnection():
-    global mysql_conn
-    global mysql_cursor
-    mysql_conn = mysql.connector.connect(
-        host=mysql_host, port=mysql_port, user=mysql_user, password=mysql_pass
-    )
-    mysql_conn.database = mysql_db
-    mysql_cursor = mysql_conn.cursor()
-    return mysql_conn
-
-
-def closeMySQLConnection():
-    global mysql_conn
-    global mysql_cursor
-    if mysql_conn == None:
-        return
-    # close mysql connection
-    mysql_cursor.close()
-    mysql_conn.disconnect()
+    def __del__(self):
+        if self.mysql_conn == None:
+            return
+        # close mysql connection
+        self.mysql_cursor.close()
+        self.mysql_conn.disconnect()

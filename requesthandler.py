@@ -6,9 +6,8 @@ from http.server import BaseHTTPRequestHandler
 from random import randint, randrange
 from urllib.parse import parse_qs, urlparse
 
-from mysqlconnection import getMySQLCursor, openMySQLConnection, closeMySQLConnection
-
-from config import res_folder
+from config import *
+from mysqlconnection import MySqlConnection
 
 ALLOWED_TOKEN_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 valid_tokens = []
@@ -24,15 +23,12 @@ def generateToken(length):
         token += ALLOWED_TOKEN_CHARS[randrange(len(ALLOWED_TOKEN_CHARS))]
     return token
 
+sqlConnection2 = MySqlConnection(mysql_db, mysql_host, mysql_pass, mysql_port, mysql_user)
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):
     def __init__(self, request, client_address, server):
-        self.mysql_conn = openMySQLConnection()
-        self.mysql_cursor = getMySQLCursor()
+        self.sqlConnection = sqlConnection2
         super().__init__(request, client_address, server)
-
-    def __del__(self):
-        closeMySQLConnection()
 
     def do_GET(self):
         parsed_path = urlparse(self.path)
@@ -87,8 +83,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                         return
 
                     sql_query = "SELECT type FROM entries WHERE uuid=X'{}'".format(id)
-                    self.mysql_cursor.execute(sql_query)
-                    row = self.mysql_cursor.fetchone()
+                    self.sqlConnection.mysql_cursor.execute(sql_query)
+                    row = self.sqlConnection.mysql_cursor.fetchone()
                     if row != None:
                         self.send_response(200)
                         self.send_header(
@@ -99,8 +95,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                         sql_query = "SELECT path FROM resources WHERE entry_uuid=X'{}'".format(
                             id
                         )
-                        self.mysql_cursor.execute(sql_query)
-                        for row in self.mysql_cursor.fetchall():
+                        self.sqlConnection.mysql_cursor.execute(sql_query)
+                        for row in self.sqlConnection.mysql_cursor.fetchall():
                             self.wfile.write(("\n" + row[0]).encode())
                     else:
                         self.send_response(404)
@@ -145,13 +141,13 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 sql_query = "INSERT INTO entries (uuid, type) VALUES (X'{}', '{}');".format(
                     id.hex, post_parsed_content["type"]
                 )
-                self.mysql_cursor.execute(sql_query)
+                self.sqlConnection.mysql_cursor.execute(sql_query)
                 for blobfile in post_parsed_content["files"]:
                     sql_query = "INSERT INTO resources (entry_uuid, path) VALUES (X'{}', '{}');".format(
                         id.hex, blobfile
                     )
-                    self.mysql_cursor.execute(sql_query)
-                self.mysql_conn.commit()
+                    self.sqlConnection.mysql_cursor.execute(sql_query)
+                self.sqlConnection.mysql_conn.commit()
                 self.send_response(200)
                 self.send_header("Access-Control-Allow-Origin", "http://localhost:4200")
                 self.end_headers()
