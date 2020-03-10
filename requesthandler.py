@@ -3,30 +3,20 @@ import json
 import os
 import uuid
 from http.server import BaseHTTPRequestHandler
-from random import randint, randrange
 from urllib.parse import parse_qs, urlparse
 
 from config import *
 from mysqlconnection import MySqlConnection
-
-ALLOWED_TOKEN_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
-valid_tokens = []
-
+from sessionmanager import SessionManager
 
 if not os.path.exists(res_folder):
     os.mkdir(res_folder)
 
-
-def generateToken(length):
-    token = ""
-    for _ in range(length):
-        token += ALLOWED_TOKEN_CHARS[randrange(len(ALLOWED_TOKEN_CHARS))]
-    return token
-
-
 globalSqlConnection = MySqlConnection(
     mysql_db, mysql_host, mysql_pass, mysql_port, mysql_user
 )
+
+globalSessionManager = SessionManager()
 
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):
@@ -36,8 +26,15 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         parsed_path = urlparse(self.path)
-        is_authorized = self.headers.__contains__("LOGIN-TOKEN") and valid_tokens.__contains__(self.headers.get("LOGIN-TOKEN"))
+        is_authorized = self.headers.__contains__(
+            "LOGIN-TOKEN"
+        ) and globalSessionManager.isActiveSession(self.headers.get("LOGIN-TOKEN"))
         splitted = parsed_path.path.split("/")
+        if len(splitted) < 2:
+            self.send_response(400)
+            self.end_headers()
+            return
+
         if splitted[1] == "file":
             try:
                 with open(res_folder + splitted[2] + ".json") as f:
@@ -61,9 +58,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                                 ).st_size
                             ),
                         )
-                        self.send_header(
-                            "Access-Control-Allow-Origin", "*"
-                        )
+                        self.send_header("Access-Control-Allow-Origin", "*")
                         self.end_headers()
 
                         while True:
@@ -75,7 +70,11 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 print(e)
                 self.send_response(404)
                 self.end_headers()
-
+        elif splitted[1] == "authorized":
+            self.send_response(200)
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(str(is_authorized).encode())
         elif not is_authorized:
             if splitted[1] == "resource":
                 if len(splitted) == 3:
@@ -91,9 +90,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                     row = self.sqlConnection.fetchone()
                     if row != None:
                         self.send_response(200)
-                        self.send_header(
-                            "Access-Control-Allow-Origin", "*"
-                        )
+                        self.send_header("Access-Control-Allow-Origin", "*")
                         self.end_headers()
                         self.wfile.write((row[0]).encode())
                         sql_query = "SELECT path FROM resources WHERE entry_uuid=X'%s'"
@@ -111,7 +108,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def do_POST(self):
-        is_authorized = self.headers.__contains__("LOGIN-TOKEN") and valid_tokens.__contains__(self.headers.get("LOGIN-TOKEN"))
+        is_authorized = self.headers.__contains__(
+            "LOGIN-TOKEN"
+        ) and valid_tokens.__contains__(self.headers.get("LOGIN-TOKEN"))
 
         parsed_path = urlparse(self.path)
         parsed_query = parse_qs(parsed_path.query)
@@ -122,8 +121,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 post_parsed_content = json.loads(post_content)
                 if post_parsed_content["password"] == "defg":
                     self.send_response(201)
-                    new_token = generateToken(20)
-                    valid_tokens.append(new_token)
+                    new_token = globalSessionManager.createSession(32)
                     self.send_header("Access-Control-Allow-Origin", "*")
                     self.end_headers()
                     self.wfile.write(('{"token":"' + new_token + '"}').encode())
@@ -139,13 +137,15 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 content_len = int(self.headers.get("Content-Length"))
                 post_content = self.rfile.read(content_len)
                 post_parsed_content = json.loads(post_content)
-                
+
                 id = uuid.uuid4()
                 content_type = post_parsed_content.get("type")
                 sql_query = "INSERT INTO entries (uuid, type) VALUES (X'%s', '%s');"
                 self.sqlConnection.execute(sql_query, (id.hex, content_type))
                 for blobfile in post_parsed_content["files"]:
-                    sql_query = "INSERT INTO resources (entry_uuid, path) VALUES (X'%s', '%s');"
+                    sql_query = (
+                        "INSERT INTO resources (entry_uuid, path) VALUES (X'%s', '%s');"
+                    )
                     self.sqlConnection.execute(sql_query, (id.hex, blobfile))
                 self.sqlConnection.commit()
                 self.send_response(200)
