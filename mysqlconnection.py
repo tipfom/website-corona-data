@@ -40,9 +40,9 @@ class MySqlConnection:
         if not self._mysql_conn.is_connected():
             logging.error("could not connect to database")
 
-    def execute(self, cmd):
+    def execute(self, cmd, params=()):
         self.checkConnection()
-        return self._mysql_cursor.execute(cmd)
+        return self._mysql_cursor.execute(cmd, params)
 
     def fetchone(self):
         self.checkConnection()

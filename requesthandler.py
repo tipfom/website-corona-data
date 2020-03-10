@@ -86,8 +86,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                         self.end_headers()
                         return
 
-                    sql_query = "SELECT type FROM entries WHERE uuid=X'{}'".format(id)
-                    self.sqlConnection.execute(sql_query)
+                    sql_query = "SELECT type FROM entries WHERE uuid=X'%s'"
+                    self.sqlConnection.execute(sql_query, (id))
                     row = self.sqlConnection.fetchone()
                     if row != None:
                         self.send_response(200)
@@ -96,10 +96,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                         )
                         self.end_headers()
                         self.wfile.write((row[0]).encode())
-                        sql_query = "SELECT path FROM resources WHERE entry_uuid=X'{}'".format(
-                            id
-                        )
-                        self.sqlConnection.execute(sql_query)
+                        sql_query = "SELECT path FROM resources WHERE entry_uuid=X'%s'"
+                        self.sqlConnection.execute(sql_query, (id))
                         for row in self.sqlConnection.fetchall():
                             self.wfile.write(("\n" + row[0]).encode())
                     else:
@@ -118,20 +116,24 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         parsed_path = urlparse(self.path)
         parsed_query = parse_qs(parsed_path.query)
         if parsed_path.path.startswith("/login"):
-            content_len = int(self.headers.get("Content-Length"))
-            post_content = self.rfile.read(content_len)
-            post_parsed_content = json.loads(post_content)
-            if post_parsed_content["password"] == "defg":
-                self.send_response(201)
-                new_token = generateToken(20)
-                valid_tokens.append(new_token)
-                self.send_header("Access-Control-Allow-Origin", "*")
+            try:
+                content_len = int(self.headers.get("Content-Length"))
+                post_content = self.rfile.read(content_len)
+                post_parsed_content = json.loads(post_content)
+                if post_parsed_content["password"] == "defg":
+                    self.send_response(201)
+                    new_token = generateToken(20)
+                    valid_tokens.append(new_token)
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.end_headers()
+                    self.wfile.write(('{"token":"' + new_token + '"}').encode())
+                else:
+                    self.send_response(401)
+                    self.end_headers()
+            except Exception:
+                self.send_response(400)
                 self.end_headers()
-                self.wfile.write(('{"token":"' + new_token + '"}').encode())
-            else:
-                self.send_response(401)
-                self.send_header("Access-Control-Allow-Origin", "*")
-                self.end_headers()
+
         elif is_authorized:
             if parsed_path.path.startswith("/resource"):
                 content_len = int(self.headers.get("Content-Length"))
@@ -140,11 +142,11 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 
                 id = uuid.uuid4()
                 content_type = post_parsed_content.get("type")
-                sql_query = f"INSERT INTO entries (uuid, type) VALUES (X'{id.hex}', '{content_type}');"
-                self.sqlConnection.execute(sql_query)
+                sql_query = "INSERT INTO entries (uuid, type) VALUES (X'%s', '%s');"
+                self.sqlConnection.execute(sql_query, (id.hex, content_type))
                 for blobfile in post_parsed_content["files"]:
-                    sql_query = f"INSERT INTO resources (entry_uuid, path) VALUES (X'{id.hex}', '{blobfile}');"
-                    self.sqlConnection.execute(sql_query)
+                    sql_query = "INSERT INTO resources (entry_uuid, path) VALUES (X'%s', '%s');"
+                    self.sqlConnection.execute(sql_query, (id.hex, blobfile))
                 self.sqlConnection.commit()
                 self.send_response(200)
                 self.send_header("Access-Control-Allow-Origin", "*")
