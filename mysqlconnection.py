@@ -20,7 +20,7 @@ class MySqlConnection:
             password=self.mysql_pass,
         )
         self._mysql_conn.database = self.mysql_db
-        self._mysql_cursor = self._mysql_conn.cursor()
+        self._mysql_cursor = self._mysql_conn.cursor(buffered=True)
 
         logging.info("MySqlConnection initialized")
 
@@ -35,7 +35,7 @@ class MySqlConnection:
         if not self._mysql_conn.is_connected():
             self._mysql_conn.reconnect()
             self._mysql_conn.database = self.mysql_db
-            self._mysql_cursor = self._mysql_conn.cursor()
+            self._mysql_cursor = self._mysql_conn.cursor(buffered=True)
 
         if not self._mysql_conn.is_connected():
             logging.error("could not connect to database")

@@ -24,11 +24,19 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         self.sqlConnection = globalSqlConnection
         super().__init__(request, client_address, server)
 
+    def get_client_ip(self):
+        if self.headers.__contains__("PROXY"):
+            if self.headers.__contains__("X-FORWARDED-FOR"):
+                return self.headers.get("X-FORWARDED-FOR")
+        else:
+            return self.client_address[0]
+        return None
+
     def do_GET(self):
         parsed_path = urlparse(self.path)
         is_authorized = self.headers.__contains__(
             "LOGIN-TOKEN"
-        ) and globalSessionManager.isActiveSession(self.headers.get("LOGIN-TOKEN"))
+        ) and globalSessionManager.isActiveSession(self.get_client_ip(), self.headers.get("LOGIN-TOKEN"))
         splitted = parsed_path.path.split("/")
         if len(splitted) < 2:
             self.send_response(400)
@@ -109,7 +117,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         is_authorized = self.headers.__contains__(
             "LOGIN-TOKEN"
-        ) and valid_tokens.__contains__(self.headers.get("LOGIN-TOKEN"))
+        ) and globalSessionManager.isActiveSession(self.get_client_ip(), self.headers.get("LOGIN-TOKEN"))
 
         parsed_path = urlparse(self.path)
         parsed_query = parse_qs(parsed_path.query)
@@ -120,7 +128,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 post_parsed_content = json.loads(post_content)
                 if post_parsed_content["password"] == "defg":
                     self.send_response(201)
-                    new_token = globalSessionManager.createSession(32)
+                    new_token = globalSessionManager.createSession(self.get_client_ip(), 32)
                     self.send_header("Access-Control-Allow-Origin", "*")
                     self.end_headers()
                     self.wfile.write(('{"token":"' + new_token + '"}').encode())
@@ -139,11 +147,11 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
                 id = uuid.uuid4()
                 content_type = post_parsed_content.get("type")
-                sql_query = "INSERT INTO entries (uuid, type) VALUES (X'%s', '%s');"
+                sql_query = "INSERT INTO entries (uuid, type) VALUES (X%s, %s);"
                 self.sqlConnection.execute(sql_query, (id.hex, content_type))
                 for blobfile in post_parsed_content["files"]:
                     sql_query = (
-                        "INSERT INTO resources (entry_uuid, path) VALUES (X'%s', '%s');"
+                        "INSERT INTO resources (entry_uuid, path) VALUES (X%s, %s);"
                     )
                     self.sqlConnection.execute(sql_query, (id.hex, blobfile))
                 self.sqlConnection.commit()
