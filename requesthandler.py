@@ -126,7 +126,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 content_len = int(self.headers.get("Content-Length"))
                 post_content = self.rfile.read(content_len)
                 post_parsed_content = json.loads(post_content)
-                if post_parsed_content["password"] == "defg":
+                if post_parsed_content["password"] == "ME^WDKn$mL6c74eq":
                     self.send_response(201)
                     new_token = globalSessionManager.createSession(self.get_client_ip(), 32)
                     self.send_header("Access-Control-Allow-Origin", "*")
