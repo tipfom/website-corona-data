@@ -92,18 +92,18 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                     self.end_headers()
                     return
 
-                sql_query = f"SELECT type FROM entries WHERE uuid=X'{id}'"
+                sql_query = f"SELECT type, creation_time, path FROM resources WHERE entry_uuid=X'{id}';"
                 self.sqlConnection.execute(sql_query)
                 row = self.sqlConnection.fetchone()
                 if row != None:
                     self.send_response(200)
                     self.send_header("Access-Control-Allow-Origin", "*")
                     self.end_headers()
-                    self.wfile.write((row[0]).encode())
-                    sql_query = f"SELECT path FROM resources WHERE entry_uuid=X'{id}'"
-                    self.sqlConnection.execute(sql_query)
-                    for row in self.sqlConnection.fetchall():
-                        self.wfile.write(("\n" + row[0]).encode())
+                    queried_resources = []
+                    while row:
+                        queried_resources.append({"type": row[0] , "creation_time": row[1].isoformat(),"path": row[2]})
+                        row = self.sqlConnection.fetchone()
+                    self.wfile.write(json.dumps(queried_resources).encode())
                 else:
                     self.send_response(404)
                     self.end_headers()
@@ -146,14 +146,12 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 post_parsed_content = json.loads(post_content)
 
                 id = uuid.uuid4()
-                content_type = post_parsed_content.get("type")
-                sql_query = "INSERT INTO entries (uuid, type) VALUES (X%s, %s);"
-                self.sqlConnection.execute(sql_query, (id.hex, content_type))
+                content_type = post_parsed_content.get("type") # TODO: CHECK CONTENT TYPE
                 for blobfile in post_parsed_content["files"]:
                     sql_query = (
-                        "INSERT INTO resources (entry_uuid, path) VALUES (X%s, %s);"
+                        "INSERT INTO resources (type, path, entry_uuid) VALUES (%s, %s, X%s);"
                     )
-                    self.sqlConnection.execute(sql_query, (id.hex, blobfile))
+                    self.sqlConnection.execute(sql_query, (content_type, blobfile, id.hex))
                 self.sqlConnection.commit()
                 self.send_response(200)
                 self.send_header("Access-Control-Allow-Origin", "*")
