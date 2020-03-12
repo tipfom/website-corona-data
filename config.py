@@ -7,3 +7,4 @@ mysql_pass = "YNy2*rJAck%DcS^#"
 mysql_db = "website_cms"
 
 res_folder = "./res/"
+articles_folder = "./articles/"

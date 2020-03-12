@@ -36,7 +36,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         parsed_path = urlparse(self.path)
         is_authorized = self.headers.__contains__(
             "LOGIN-TOKEN"
-        ) and globalSessionManager.isActiveSession(self.get_client_ip(), self.headers.get("LOGIN-TOKEN"))
+        ) and globalSessionManager.isActiveSession(
+            self.get_client_ip(), self.headers.get("LOGIN-TOKEN")
+        )
         splitted = parsed_path.path.split("/")
         if len(splitted) < 2:
             self.send_response(400)
@@ -101,7 +103,13 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                     self.end_headers()
                     queried_resources = []
                     while row:
-                        queried_resources.append({"type": row[0] , "creation_time": row[1].isoformat(),"path": row[2]})
+                        queried_resources.append(
+                            {
+                                "type": row[0],
+                                "creation_time": row[1].isoformat(),
+                                "path": row[2],
+                            }
+                        )
                         row = self.sqlConnection.fetchone()
                     self.wfile.write(json.dumps(queried_resources).encode())
                 else:
@@ -110,6 +118,65 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             else:
                 self.send_response(400)
                 self.end_headers()
+        elif splitted[1] == "articles":
+            if splitted[2] == "all":
+                sql_query = "SELECT a1.name, a1.creation_time, a1.file FROM articles a1 WHERE a1.creation_time = (SELECT MAX(creation_time) FROM articles a2 WHERE a1.name = a2.name);"
+                self.sqlConnection.execute(sql_query)
+                self.send_response(200)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                articles = []
+                for row in self.sqlConnection.fetchall():
+                    articles.append(
+                        {
+                            "name": row[0],
+                            "creation_time": row[1].isoformat(),
+                            "file": row[2],
+                        }
+                    )
+                self.wfile.write(json.dumps(articles).encode())
+            elif splitted[2] == "versions":
+                sql_query = (
+                    "SELECT name, creation_time, file FROM articles WHERE name=%s ORDER BY creation_time"
+                )
+                self.sqlConnection.execute(sql_query, (splitted[3],))
+                self.send_response(200)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                articles = []
+                for row in self.sqlConnection.fetchall():
+                    articles.append(
+                        {
+                            "name": row[0],
+                            "creation_time": row[1].isoformat(),
+                            "file": row[2],
+                        }
+                    )
+                self.wfile.write(json.dumps(articles).encode())
+            elif splitted[2] == "content":
+                try:
+                    with open(articles_folder + splitted[3], "rb") as f:
+                        self.send_response(200)
+                        self.send_header("Content-Type", "text/markdown; charset=UTF-8")
+                        self.send_header(
+                            "Content-Length",
+                            str(os.stat(articles_folder + splitted[3]).st_size),
+                        )
+                        self.send_header(
+                            "Content-Disposition", "inline"
+                        )
+                        self.send_header("Access-Control-Allow-Origin", "*")
+                        self.end_headers()
+                        while True:
+                            data = f.read(1024)
+                            if not data:
+                                break
+                            self.wfile.write(data)
+
+                except Exception:
+                    self.send_response(404)
+                    self.end_headers()
+
         else:
             self.send_response(401)
             self.end_headers()
@@ -117,7 +184,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         is_authorized = self.headers.__contains__(
             "LOGIN-TOKEN"
-        ) and globalSessionManager.isActiveSession(self.get_client_ip(), self.headers.get("LOGIN-TOKEN"))
+        ) and globalSessionManager.isActiveSession(
+            self.get_client_ip(), self.headers.get("LOGIN-TOKEN")
+        )
 
         parsed_path = urlparse(self.path)
         parsed_query = parse_qs(parsed_path.query)
@@ -128,7 +197,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 post_parsed_content = json.loads(post_content)
                 if post_parsed_content["password"] == "ME^WDKn$mL6c74eq":
                     self.send_response(201)
-                    new_token = globalSessionManager.createSession(self.get_client_ip(), 32)
+                    new_token = globalSessionManager.createSession(
+                        self.get_client_ip(), 32
+                    )
                     self.send_header("Access-Control-Allow-Origin", "*")
                     self.end_headers()
                     self.wfile.write(('{"token":"' + new_token + '"}').encode())
@@ -146,12 +217,14 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 post_parsed_content = json.loads(post_content)
 
                 id = uuid.uuid4()
-                content_type = post_parsed_content.get("type") # TODO: CHECK CONTENT TYPE
+                content_type = post_parsed_content.get(
+                    "type"
+                )  # TODO: CHECK CONTENT TYPE
                 for blobfile in post_parsed_content["files"]:
-                    sql_query = (
-                        "INSERT INTO resources (type, path, entry_uuid) VALUES (%s, %s, X%s);"
+                    sql_query = "INSERT INTO resources (type, path, entry_uuid) VALUES (%s, %s, X%s);"
+                    self.sqlConnection.execute(
+                        sql_query, (content_type, blobfile, id.hex)
                     )
-                    self.sqlConnection.execute(sql_query, (content_type, blobfile, id.hex))
                 self.sqlConnection.commit()
                 self.send_response(200)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -180,6 +253,22 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                     )
 
                 self.wfile.write(filename.encode())
+            elif parsed_path.path.startswith("/article"):
+                content_len = int(self.headers.get("Content-Length"))
+                post_content = self.rfile.read(content_len)
+                filename = str(uuid.uuid4().hex) + ".md"
+                with open(articles_folder + filename, "wb+") as blobfile:
+                    blobfile.write(post_content)
+                sql_query = "INSERT INTO articles (name, file) VALUES (%s, %s)"
+                self.sqlConnection.execute(
+                    sql_query, (parsed_query["name"][0], filename)
+                )
+                self.sqlConnection.commit()
+
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(filename.encode())
+
             else:
                 self.send_response(404)
                 self.end_headers()

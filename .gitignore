@@ -1,4 +1,5 @@
 .vscode/*
 res/*
+articles/*
 
 *.pyc
