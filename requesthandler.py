@@ -20,6 +20,7 @@ globalSessionManager = SessionManager()
 
 article_cache = {}
 
+
 class HTTPRequestHandler(BaseHTTPRequestHandler):
     def __init__(self, request, client_address, server):
         self.sqlConnection = globalSqlConnection
@@ -121,7 +122,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
         elif splitted[1] == "articles":
             if splitted[2] == "all":
-                sql_query = "SELECT a1.name, a1.creation_time, a1.file FROM articles a1 WHERE a1.creation_time = (SELECT MAX(creation_time) FROM articles a2 WHERE a1.name = a2.name);"
+                sql_query = "SELECT a1.name, a1.creation_time, a1.file, a1.title, a1.description FROM articles a1 WHERE a1.creation_time = (SELECT MAX(creation_time) FROM articles a2 WHERE a1.name = a2.name);"
                 self.sqlConnection.execute(sql_query)
                 self.send_response(200)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -133,13 +134,13 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                             "name": row[0],
                             "creation_time": row[1].isoformat(),
                             "file": row[2],
+                            "title": row[3],
+                            "description": row[4],
                         }
                     )
                 self.wfile.write(json.dumps(articles).encode())
             elif splitted[2] == "versions":
-                sql_query = (
-                    "SELECT name, creation_time, file FROM articles WHERE name=%s ORDER BY creation_time"
-                )
+                sql_query = "SELECT name, creation_time, file, title, description FROM articles WHERE name=%s ORDER BY creation_time"
                 self.sqlConnection.execute(sql_query, (splitted[3],))
                 self.send_response(200)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -151,6 +152,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                             "name": row[0],
                             "creation_time": row[1].isoformat(),
                             "file": row[2],
+                            "title": row[3],
+                            "description": row[4],
                         }
                     )
                 self.wfile.write(json.dumps(articles).encode())
@@ -165,9 +168,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                         "Content-Length",
                         str(os.stat(articles_folder + splitted[3]).st_size),
                     )
-                    self.send_header(
-                        "Content-Disposition", "inline"
-                    )
+                    self.send_header("Content-Disposition", "inline")
                     self.send_header("Access-Control-Allow-Origin", "*")
                     self.end_headers()
                     self.wfile.write(article_cache[splitted[3]])
@@ -258,9 +259,15 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 filename = str(uuid.uuid4().hex) + ".md"
                 with open(articles_folder + filename, "wb+") as blobfile:
                     blobfile.write(post_content)
-                sql_query = "INSERT INTO articles (name, file) VALUES (%s, %s)"
+                sql_query = "INSERT INTO articles (name, file, title, description) VALUES (%s, %s, %s, %s)"
                 self.sqlConnection.execute(
-                    sql_query, (parsed_query["name"][0], filename)
+                    sql_query,
+                    (
+                        parsed_query["name"][0],
+                        filename,
+                        parsed_query["title"][0],
+                        parsed_query["description"][0],
+                    ),
                 )
                 self.sqlConnection.commit()
 
