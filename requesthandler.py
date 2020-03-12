@@ -18,6 +18,7 @@ globalSqlConnection = MySqlConnection(
 
 globalSessionManager = SessionManager()
 
+article_cache = {}
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):
     def __init__(self, request, client_address, server):
@@ -155,23 +156,21 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps(articles).encode())
             elif splitted[2] == "content":
                 try:
-                    with open(articles_folder + splitted[3], "rb") as f:
-                        self.send_response(200)
-                        self.send_header("Content-Type", "text/markdown; charset=UTF-8")
-                        self.send_header(
-                            "Content-Length",
-                            str(os.stat(articles_folder + splitted[3]).st_size),
-                        )
-                        self.send_header(
-                            "Content-Disposition", "inline"
-                        )
-                        self.send_header("Access-Control-Allow-Origin", "*")
-                        self.end_headers()
-                        while True:
-                            data = f.read(1024)
-                            if not data:
-                                break
-                            self.wfile.write(data)
+                    if not article_cache.__contains__(splitted[3]):
+                        with open(articles_folder + splitted[3], "rb") as f:
+                            article_cache.update({splitted[3]: f.read()})
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/markdown; charset=UTF-8")
+                    self.send_header(
+                        "Content-Length",
+                        str(os.stat(articles_folder + splitted[3]).st_size),
+                    )
+                    self.send_header(
+                        "Content-Disposition", "inline"
+                    )
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.end_headers()
+                    self.wfile.write(article_cache[splitted[3]])
 
                 except Exception:
                     self.send_response(404)
