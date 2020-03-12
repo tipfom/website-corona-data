@@ -176,6 +176,24 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 except Exception:
                     self.send_response(404)
                     self.end_headers()
+            elif splitted[2] == "spotlight":
+                sql_query = "SELECT name, creation_time, file, title, description FROM articles WHERE spotlight = 1 ORDER BY name"
+                self.sqlConnection.execute(sql_query)
+                self.send_response(200)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                articles = []
+                for row in self.sqlConnection.fetchall():
+                    articles.append(
+                        {
+                            "name": row[0],
+                            "creation_time": row[1].isoformat(),
+                            "file": row[2],
+                            "title": row[3],
+                            "description": row[4],
+                        }
+                    )
+                self.wfile.write(json.dumps(articles).encode())
 
         else:
             self.send_response(401)
