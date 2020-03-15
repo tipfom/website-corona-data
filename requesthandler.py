@@ -36,6 +36,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         parsed_path = urlparse(self.path)
+        parsed_query = parse_qs(parsed_path.query)
         is_authorized = self.headers.__contains__(
             "LOGIN-TOKEN"
         ) and globalSessionManager.isActiveSession(
@@ -122,7 +123,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
         elif splitted[1] == "articles":
             if splitted[2] == "all":
-                sql_query = "SELECT a1.name, a1.creation_time, a1.file, a1.title, a1.description FROM articles a1 WHERE a1.creation_time = (SELECT MAX(creation_time) FROM articles a2 WHERE a1.name = a2.name);"
+                sql_query = "SELECT name, creation_time, title_de, description_de, title_en, description_en FROM articles"
                 self.sqlConnection.execute(sql_query)
                 self.send_response(200)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -133,30 +134,64 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                         {
                             "name": row[0],
                             "creation_time": row[1].isoformat(),
-                            "file": row[2],
-                            "title": row[3],
-                            "description": row[4],
+                            "title_de": row[2],
+                            "description_de": row[3],
+                            "title_en": row[4],
+                            "description_en": row[5],
                         }
                     )
                 self.wfile.write(json.dumps(articles).encode())
-            elif splitted[2] == "versions":
-                sql_query = "SELECT name, creation_time, file, title, description FROM articles WHERE name=%s ORDER BY creation_time"
+            elif splitted[2] == "detail":
+                sql_query = "SELECT article_id, title_de, description_de, title_en, description_en, creation_time FROM articles WHERE name=%s"
                 self.sqlConnection.execute(sql_query, (splitted[3],))
-                self.send_response(200)
-                self.send_header("Access-Control-Allow-Origin", "*")
-                self.end_headers()
-                articles = []
-                for row in self.sqlConnection.fetchall():
-                    articles.append(
-                        {
-                            "name": row[0],
-                            "creation_time": row[1].isoformat(),
-                            "file": row[2],
-                            "title": row[3],
-                            "description": row[4],
-                        }
+                article = self.sqlConnection.fetchone()
+                if article:
+                    article_id = article[0]
+                    sql_query = "SELECT version_id, creation_time FROM article_versions WHERE article_id=%s ORDER BY version_id"
+                    self.sqlConnection.execute(sql_query, (article_id,))
+                    versions = []
+                    for version_row in self.sqlConnection.fetchall():
+                        versions.append(
+                            {
+                                "id": version_row[0],
+                                "creation_time": version_row[1],
+                                "files": [],
+                            }
+                        )
+
+                    files = []
+                    for version in versions:
+                        sql_query = "SELECT lang, path FROM article_version_files WHERE version_id=%s"
+                        self.sqlConnection.execute(sql_query, (version["id"],))
+                        version_files = []
+                        for file_row in self.sqlConnection.fetchall():
+                            version_files.append(
+                                {
+                                    "lang": file_row[0],
+                                    "path": file_row[1],
+                                    "creation_time": version["creation_time"].isoformat(),
+                                }
+                            )
+                        files.append(version_files)
+
+                    self.send_response(200)
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.end_headers()
+                    self.wfile.write(
+                        json.dumps(
+                            {
+                                "title_de": article[1],
+                                "description_de": article[2],
+                                "title_en": article[3],
+                                "description_en": article[4],
+                                "creation_time": article[5].isoformat(),
+                                "files": files,
+                            }
+                        ).encode()
                     )
-                self.wfile.write(json.dumps(articles).encode())
+                else:
+                    self.send_response(404)
+                    self.end_headers()
             elif splitted[2] == "content":
                 try:
                     if not article_cache.__contains__(splitted[3]):
@@ -177,7 +212,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                     self.send_response(404)
                     self.end_headers()
             elif splitted[2] == "spotlight":
-                sql_query = "SELECT name, creation_time, file, title, description FROM articles WHERE spotlight = 1 ORDER BY name"
+                sql_query = "SELECT name, title_de, description_de, title_en, description_en FROM articles WHERE is_spotlight = 1 ORDER BY name"
                 self.sqlConnection.execute(sql_query)
                 self.send_response(200)
                 self.send_header("Access-Control-Allow-Origin", "*")
@@ -187,10 +222,10 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                     articles.append(
                         {
                             "name": row[0],
-                            "creation_time": row[1].isoformat(),
-                            "file": row[2],
-                            "title": row[3],
-                            "description": row[4],
+                            "title_de": row[1],
+                            "description_de": row[2],
+                            "title_en": row[3],
+                            "description_en": row[4],
                         }
                     )
                 self.wfile.write(json.dumps(articles).encode())
@@ -277,23 +312,47 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 filename = str(uuid.uuid4().hex) + ".md"
                 with open(articles_folder + filename, "wb+") as blobfile:
                     blobfile.write(post_content)
-                sql_query = "INSERT INTO articles (name, file, title, description) VALUES (%s, %s, %s, %s)"
+
+                sql_query = "SELECT article_id FROM articles WHERE name=%s"
+                self.sqlConnection.execute(sql_query, (parsed_query["name"][0],))
+                article_id = self.sqlConnection.fetchone()
+                if not article_id:
+                    sql_query = "INSERT INTO articles (name, title_de, description_de, title_en, description_en) VALUES (%s, %s, %s, %s, %s)"
+                    self.sqlConnection.execute(
+                        sql_query,
+                        (
+                            parsed_query["name"][0],
+                            parsed_query["title_de"][0],
+                            parsed_query["description_de"][0],
+                            parsed_query["title_en"][0],
+                            parsed_query["description_en"][0],
+                        ),
+                    )
+                    self.sqlConnection.commit()
+                    sql_query = "SELECT article_id FROM articles WHERE name=%s"
+                    self.sqlConnection.execute(sql_query, (parsed_query["name"][0],))
+                    article_id = self.sqlConnection.fetchone()
+
+                version_id = ""
+                if parsed_query.__contains__("version_id"):
+                    version_id = parsed_query["version_id"][0]
+                else:
+                    sql_query = "INSERT INTO article_versions (article_id) VALUES (%s);"
+                    self.sqlConnection.execute(sql_query, (article_id[0],))
+                    self.sqlConnection.commit()
+                    sql_query = "SELECT MAX(version_id) FROM article_versions"
+                    self.sqlConnection.execute(sql_query)
+                    version_id = self.sqlConnection.fetchone()[0]
+
+                sql_query = "INSERT INTO article_version_files (version_id, lang, path) VALUES (%s, %s, %s)"
                 self.sqlConnection.execute(
-                    sql_query,
-                    (
-                        parsed_query["name"][0],
-                        filename,
-                        parsed_query["title"][0],
-                        parsed_query["description"][0],
-                    ),
+                    sql_query, (version_id, parsed_query["lang"][0], filename)
                 )
                 self.sqlConnection.commit()
-
                 self.send_response(200)
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
-                self.wfile.write(filename.encode())
-
+                self.wfile.write(str(version_id).encode())
             else:
                 self.send_response(404)
                 self.end_headers()
