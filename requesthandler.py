@@ -8,12 +8,13 @@ from urllib.parse import parse_qs, urlparse
 from config import *
 from mysqlconnection import MySqlConnection
 from sessionmanager import SessionManager
+from passwords import *
 
 if not os.path.exists(res_folder):
     os.mkdir(res_folder)
 
 globalSqlConnection = MySqlConnection(
-    mysql_db, mysql_host, mysql_pass, mysql_port, mysql_user
+    mysql_db, mysql_host, mysql_password, mysql_port, mysql_user
 )
 
 globalSessionManager = SessionManager()
@@ -248,7 +249,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 content_len = int(self.headers.get("Content-Length"))
                 post_content = self.rfile.read(content_len)
                 post_parsed_content = json.loads(post_content)
-                if post_parsed_content["password"] == "ME^WDKn$mL6c74eq":
+                if post_parsed_content["password"] == admin_password:
                     self.send_response(201)
                     new_token = globalSessionManager.createSession(
                         self.get_client_ip(), 32

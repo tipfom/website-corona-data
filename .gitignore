@@ -3,3 +3,5 @@ res/*
 articles/*
 
 *.pyc
+
+passwords.py
