@@ -1,6 +1,8 @@
 FROM python:3
 
 RUN pip install mysql-connector-python
+RUN pip install scipy
+RUN pip install numpy
 
 WORKDIR /server/
 

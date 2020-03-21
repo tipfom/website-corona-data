@@ -11,7 +11,10 @@ class Data:
         self.total = np.array([])
 
     def to_json(self):
-        return {"by_region": [region.tolist() for region in self.by_region], "total": self.total.tolist()}
+        by_region_dict = {}
+        for i in range(len(self.by_region)):
+            by_region_dict.update({region_names[i]: self.by_region[i].tolist()})
+        return {"by_region": by_region_dict, "total": self.total.tolist()}
 
 def get_data_from_file(filename):
     data_raw = []

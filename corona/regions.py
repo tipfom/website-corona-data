@@ -199,4 +199,15 @@ region_map = {
     "Cruise Ship": OTHER,
 }
 
+region_names = {
+    MAINLAND_CHINA: "china",
+    WESTERN_PACIFIC_REGION: "western_pacific_region",
+    EUROPEAN_REGION: "european_region",
+    SOUTH_EAST_ASIA_REGION: "south_east_asia_region",
+    EASTERN_MEDITERRANEAN_REGION: "eastern_mediterranean_region",
+    REGION_OF_THE_AMERICANS: "region_of_the_americans",
+    AFRICAN_REGION: "african_region",
+    OTHER: "other",
+}
+
 REGION_COUNT = OTHER + 1
