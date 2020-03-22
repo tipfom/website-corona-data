@@ -60,6 +60,25 @@ def generate_fits(x, y, start, p0, function, jacobian):
             result.append({"param": "undefined", "err": "undefined"})
     return result
 
+print("Getting top countries")
+topcountries = []
+for i in range(len(confirmed.total)):
+    topcountries_today = {}
+    for c in confirmed.by_country.keys():
+        topcountries_today.update(
+            {c: confirmed.by_country[c][i] - dead.by_country[c][i] - recovered.by_country[c][i]}
+        )
+        if len(topcountries_today) > 5:
+            min_country = ""
+            min_infected = 1e10
+            for tc in topcountries_today.keys():
+                if topcountries_today[tc] < min_infected:
+                    min_infected = topcountries_today[tc]
+                    min_country = tc
+            del topcountries_today[min_country]
+    topcountries.append(topcountries_today)
+
+topcountries_json = json.dumps(topcountries).encode()
 
 fit_start = 16
 fit_data_x = np.arange(0, entries)
