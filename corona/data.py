@@ -3,6 +3,7 @@ from corona.load import get_data_from_file
 import scipy.optimize
 import json
 import numpy as np
+import math
 
 data_submodule_path = "./corona/data/csse_covid_19_data/csse_covid_19_time_series/"
 datafile_confirmed = data_submodule_path + "time_series_19-covid-Confirmed.csv"
@@ -53,12 +54,18 @@ def generate_fits(x, y, start, p0, function, jacobian):
             popt, pcov = scipy.optimize.curve_fit(
                 function, x[:i], y[:i], p0, jac=jacobian, maxfev=1000
             )
-            result.append(
-                {"param": popt.tolist(), "err": np.sqrt(np.diag(pcov)).tolist()}
-            )
+            perr = np.sqrt(np.diag(pcov))
+            for k in range(len(popt)):
+                if math.isnan(popt[k]) or math.isinf(popt[k]):
+                    popt[k] = 10e10
+            for k in range(len(perr)):
+                if math.isnan(perr[k]) or math.isinf(perr[k]):
+                    perr[k] = 10e10
+            result.append({"param": popt.tolist(), "err": perr.tolist()})
         except:
             result.append({"param": "undefined", "err": "undefined"})
     return result
+
 
 print("Getting top countries")
 topcountries = []
@@ -66,7 +73,11 @@ for i in range(len(confirmed.total)):
     topcountries_today = {}
     for c in confirmed.by_country.keys():
         topcountries_today.update(
-            {c: confirmed.by_country[c][i] - dead.by_country[c][i] - recovered.by_country[c][i]}
+            {
+                c: confirmed.by_country[c][i]
+                - dead.by_country[c][i]
+                - recovered.by_country[c][i]
+            }
         )
         if len(topcountries_today) > 5:
             min_country = ""
@@ -147,7 +158,7 @@ for n in confirmed.by_country.keys():
     print(generated_datasets / len(confirmed.by_country.keys()))
     datasets.update(
         {
-            n: {
+            n.replace(" ", "_"): {
                 "confirmed": confirmed.by_country[n].tolist(),
                 "dead": dead.by_country[n].tolist(),
                 "recovered": recovered.by_country[n].tolist(),
