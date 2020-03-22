@@ -9,7 +9,7 @@ from config import *
 from mysqlconnection import MySqlConnection
 from sessionmanager import SessionManager
 from passwords import *
-from corona.data import data_json
+from corona.data import datasets_json
 
 if not os.path.exists(res_folder):
     os.mkdir(res_folder)
@@ -94,7 +94,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
-            self.wfile.write(data_json)
+            self.wfile.write(datasets_json[splitted[2]])
         elif splitted[1] == "resource":
             if len(splitted) == 3:
                 try:
