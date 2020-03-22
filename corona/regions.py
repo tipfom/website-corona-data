@@ -24,6 +24,7 @@ region_map = {
     "New Zealand": WESTERN_PACIFIC_REGION,
     "Fiji": WESTERN_PACIFIC_REGION,
     "Papua New Guinea": WESTERN_PACIFIC_REGION,
+    "East Timor": WESTERN_PACIFIC_REGION,
     #####################################################################
     "Italy": EUROPEAN_REGION,
     "France": EUROPEAN_REGION,
@@ -194,6 +195,9 @@ region_map = {
     "Madagascar": AFRICAN_REGION,
     "Cabo Verde": AFRICAN_REGION,
     "Angola": AFRICAN_REGION,
+    "Cape Verde": AFRICAN_REGION,
+    "Eritrea": AFRICAN_REGION,
+    "Uganda": AFRICAN_REGION,
     #####################################################################
     "Others": OTHER,
     "Cruise Ship": OTHER,
