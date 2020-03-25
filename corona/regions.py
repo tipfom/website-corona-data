@@ -96,6 +96,7 @@ region_map = {
     "Uzbekistan": SOUTH_EAST_ASIA_REGION,  # ?????????
     "Kazakhstan": SOUTH_EAST_ASIA_REGION,  # ????????????
     "Kyrgyzstan": SOUTH_EAST_ASIA_REGION,  # ??????????????
+    "Timor-Leste": SOUTH_EAST_ASIA_REGION,
     #####################################################################
     "Armenia": EASTERN_MEDITERRANEAN_REGION,  # ????????????
     "Iran": EASTERN_MEDITERRANEAN_REGION,
@@ -114,6 +115,7 @@ region_map = {
     "Israel": EASTERN_MEDITERRANEAN_REGION,
     "Palestine": EASTERN_MEDITERRANEAN_REGION,
     "occupied Palestinian territory": EASTERN_MEDITERRANEAN_REGION,
+    "Syria": EASTERN_MEDITERRANEAN_REGION,
     #####################################################################
     "US": REGION_OF_THE_AMERICANS,
     "Canada": REGION_OF_THE_AMERICANS,
@@ -153,6 +155,11 @@ region_map = {
     "Nicaragua": REGION_OF_THE_AMERICANS,
     "El Salvador": REGION_OF_THE_AMERICANS,
     "Haiti": REGION_OF_THE_AMERICANS,
+    "Dominica": REGION_OF_THE_AMERICANS,
+    "Grenada": REGION_OF_THE_AMERICANS,
+    "Guam": REGION_OF_THE_AMERICANS,
+    "Puerto Rico": REGION_OF_THE_AMERICANS,
+    "The Bahamas": REGION_OF_THE_AMERICANS,
     #####################################################################
     "Algeria": AFRICAN_REGION,
     "Nigeria": AFRICAN_REGION,
@@ -198,6 +205,10 @@ region_map = {
     "Cape Verde": AFRICAN_REGION,
     "Eritrea": AFRICAN_REGION,
     "Uganda": AFRICAN_REGION,
+    "Mozambique": AFRICAN_REGION,
+    "Mayotte": AFRICAN_REGION,
+    "Republic of the Congo": AFRICAN_REGION,
+    "The Gambia": AFRICAN_REGION,
     #####################################################################
     "Others": OTHER,
     "Cruise Ship": OTHER,
