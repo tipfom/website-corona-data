@@ -97,6 +97,7 @@ region_map = {
     "Kazakhstan": SOUTH_EAST_ASIA_REGION,  # ????????????
     "Kyrgyzstan": SOUTH_EAST_ASIA_REGION,  # ??????????????
     "Timor-Leste": SOUTH_EAST_ASIA_REGION,
+    "Laos": SOUTH_EAST_ASIA_REGION,
     #####################################################################
     "Armenia": EASTERN_MEDITERRANEAN_REGION,  # ????????????
     "Iran": EASTERN_MEDITERRANEAN_REGION,
@@ -150,7 +151,7 @@ region_map = {
     "Cayman Islands": REGION_OF_THE_AMERICANS,
     "Guadeloupe": REGION_OF_THE_AMERICANS,
     "Suriname": REGION_OF_THE_AMERICANS,
-    "Bahamas, The": REGION_OF_THE_AMERICANS,
+    "Bahamas": REGION_OF_THE_AMERICANS,
     "Barbados": REGION_OF_THE_AMERICANS,
     "Nicaragua": REGION_OF_THE_AMERICANS,
     "El Salvador": REGION_OF_THE_AMERICANS,
@@ -160,6 +161,8 @@ region_map = {
     "Guam": REGION_OF_THE_AMERICANS,
     "Puerto Rico": REGION_OF_THE_AMERICANS,
     "The Bahamas": REGION_OF_THE_AMERICANS,
+    "Bahamas, The": REGION_OF_THE_AMERICANS,
+    "Belize": REGION_OF_THE_AMERICANS,
     #####################################################################
     "Algeria": AFRICAN_REGION,
     "Nigeria": AFRICAN_REGION,
@@ -189,6 +192,7 @@ region_map = {
     "Central African Republic": AFRICAN_REGION,
     "Ethiopia": AFRICAN_REGION,
     "Gambia, The": AFRICAN_REGION,
+    "The Gambia": AFRICAN_REGION,
     "Benin": AFRICAN_REGION,
     "Liberia": AFRICAN_REGION,
     "Somalia": AFRICAN_REGION,
@@ -208,10 +212,13 @@ region_map = {
     "Mozambique": AFRICAN_REGION,
     "Mayotte": AFRICAN_REGION,
     "Republic of the Congo": AFRICAN_REGION,
-    "The Gambia": AFRICAN_REGION,
+    "Gambia": AFRICAN_REGION,
+    "Libya": AFRICAN_REGION,
     #####################################################################
     "Others": OTHER,
     "Cruise Ship": OTHER,
+    "Diamond Princess": OTHER,
+
 }
 
 region_names = {
