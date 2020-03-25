@@ -1,12 +1,11 @@
-FROM python:3.8-alpine
+FROM python:3
 
-RUN apk update && apk upgrade && \
-    apk add --no-cache bash git openssh
+RUN apt-get install -y git
 
-RUN pip install mysql-connector-python
-RUN pip install scipy
-RUN pip install numpy
-RUN pip install GitPython
+RUN python -m pip install mysql-connector-python
+RUN python -m pip install scipy
+RUN python -m pip install numpy
+RUN python -m pip install GitPython
 
 WORKDIR /server/
 
