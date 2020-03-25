@@ -56,8 +56,8 @@ def generate_fits(x, y, start, p0, function, jacobian):
 
 submodule_path = "./corona/data/"
 data_submodule_path = submodule_path + "csse_covid_19_data/csse_covid_19_time_series/"
-datafile_confirmed = data_submodule_path + "time_series_19-covid-Confirmed.csv"
-datafile_deaths = data_submodule_path + "time_series_19-covid-Deaths.csv"
+datafile_confirmed = data_submodule_path + "time_series_covid19_confirmed_global.csv"
+datafile_deaths = data_submodule_path + "time_series_covid19_deaths_global.csv"
 datafile_recovered = data_submodule_path + "time_series_19-covid-Recovered.csv"
 
 
@@ -66,13 +66,13 @@ def prepare_data():
     confirmed = get_data_from_file(datafile_confirmed)
     dead = get_data_from_file(datafile_deaths)
 
-    entries = len(recovered.total)
+    entries = len(confirmed.total)
 
     recovered_china = recovered.by_region[MAINLAND_CHINA]
     dead_china = dead.by_region[MAINLAND_CHINA]
     confirmed_china = confirmed.by_region[MAINLAND_CHINA]
 
-    recovered_row = confirmed.total - recovered_china
+    recovered_row = confirmed.total[: len(recovered_china)] - recovered_china
     dead_row = dead.total - dead_china
     confirmed_row = confirmed.total - confirmed_china
 
@@ -80,13 +80,7 @@ def prepare_data():
     for i in range(len(confirmed.total)):
         topcountries_today = {}
         for c in confirmed.by_country.keys():
-            topcountries_today.update(
-                {
-                    c: confirmed.by_country[c][i]
-                    - dead.by_country[c][i]
-                    - recovered.by_country[c][i]
-                }
-            )
+            topcountries_today.update({c: confirmed.by_country[c][i]})
             if len(topcountries_today) > 5:
                 min_country = ""
                 min_infected = 1e10
@@ -166,7 +160,9 @@ def prepare_data():
                 n.replace(" ", "_"): {
                     "confirmed": confirmed.by_country[n].tolist(),
                     "dead": dead.by_country[n].tolist(),
-                    "recovered": recovered.by_country[n].tolist(),
+                    "recovered": recovered.by_country[n].tolist()
+                    if recovered.by_country.__contains__(n)
+                    else "undefined",
                     "fits": {
                         "exp": generate_fits(
                             fit_data_x,
