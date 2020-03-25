@@ -212,19 +212,19 @@ def update_data():
     repo.fetch("--all")
     repo.reset("--hard", "origin/master")
     repo.pull("origin", "master")
-    output = repo.checkout('master')
+    output = repo.checkout("master")
     print(output)
 
     print("Git Pull completed")
 
     topcountries_json, datasets_json = prepare_data()
-    scheduler.enter(60, 1, update_data)
+    scheduler.enter(60 * 60 * 4, 1, update_data)
 
-update_data()
+
 topcountries_json, datasets_json = prepare_data()
 
 scheduler = sched.scheduler(time.time, time.sleep)
 
-scheduler.enter(60, 1, update_data)
+scheduler.enter(60 * 60 * 4, 1, update_data)
 t = threading.Thread(target=scheduler.run)
 t.start()
