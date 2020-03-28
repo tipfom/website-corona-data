@@ -58,8 +58,7 @@ submodule_path = "./corona/data/"
 data_submodule_path = submodule_path + "csse_covid_19_data/csse_covid_19_time_series/"
 datafile_confirmed = data_submodule_path + "time_series_covid19_confirmed_global.csv"
 datafile_deaths = data_submodule_path + "time_series_covid19_deaths_global.csv"
-datafile_recovered = data_submodule_path + "time_series_19-covid-Recovered.csv"
-
+datafile_recovered = data_submodule_path + "time_series_covid19_recovered_global.csv"
 
 def prepare_data():
     recovered = get_data_from_file(datafile_recovered)
