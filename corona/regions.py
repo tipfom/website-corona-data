@@ -9,8 +9,6 @@ OTHER = 7
 
 region_map = {
     "China": MAINLAND_CHINA,
-    "Hong Kong": MAINLAND_CHINA,
-    "Macau": MAINLAND_CHINA,
     "Taiwan*": MAINLAND_CHINA,
     #####################################################################
     "Korea, South": WESTERN_PACIFIC_REGION,
@@ -24,7 +22,6 @@ region_map = {
     "New Zealand": WESTERN_PACIFIC_REGION,
     "Fiji": WESTERN_PACIFIC_REGION,
     "Papua New Guinea": WESTERN_PACIFIC_REGION,
-    "East Timor": WESTERN_PACIFIC_REGION,
     #####################################################################
     "Italy": EUROPEAN_REGION,
     "France": EUROPEAN_REGION,
@@ -60,27 +57,20 @@ region_map = {
     "Latvia": EUROPEAN_REGION,
     "Ukraine": EUROPEAN_REGION,
     "Hungary": EUROPEAN_REGION,
-    "Gibraltar": EUROPEAN_REGION,  # ????????????????
-    "Faroe Islands": EUROPEAN_REGION,
     "Liechtenstein": EUROPEAN_REGION,
     "Poland": EUROPEAN_REGION,
     "Bosnia and Herzegovina": EUROPEAN_REGION,
     "Slovenia": EUROPEAN_REGION,
     "Serbia": EUROPEAN_REGION,
     "Slovakia": EUROPEAN_REGION,
-    "Vatican City": EUROPEAN_REGION,
     "Malta": EUROPEAN_REGION,
-    "Republic of Ireland": EUROPEAN_REGION,
     "Bulgaria": EUROPEAN_REGION,
     "Moldova": EUROPEAN_REGION,
     "Albania": EUROPEAN_REGION,
     "Cyprus": EUROPEAN_REGION,
     "Turkey": EUROPEAN_REGION,  # ?????????????????????
     "Holy See": EUROPEAN_REGION,
-    "Jersey": EUROPEAN_REGION,
-    "Guernsey": EUROPEAN_REGION,
     "Kosovo": EUROPEAN_REGION,
-    "Greenland": EUROPEAN_REGION,  # ???
     "Montenegro": EUROPEAN_REGION,
     #####################################################################
     "Thailand": SOUTH_EAST_ASIA_REGION,
@@ -114,8 +104,6 @@ region_map = {
     "Saudi Arabia": EASTERN_MEDITERRANEAN_REGION,
     "Jordan": EASTERN_MEDITERRANEAN_REGION,  # ??????????????
     "Israel": EASTERN_MEDITERRANEAN_REGION,
-    "Palestine": EASTERN_MEDITERRANEAN_REGION,
-    "occupied Palestinian territory": EASTERN_MEDITERRANEAN_REGION,
     "Syria": EASTERN_MEDITERRANEAN_REGION,
     #####################################################################
     "US": REGION_OF_THE_AMERICANS,
@@ -126,13 +114,10 @@ region_map = {
     "Dominican Republic": REGION_OF_THE_AMERICANS,  # ????????????
     "Chile": REGION_OF_THE_AMERICANS,  # ?????????????????
     "Argentina": REGION_OF_THE_AMERICANS,  # ????????????
-    "Saint Barthelemy": REGION_OF_THE_AMERICANS,  # ?????????????
     "Peru": REGION_OF_THE_AMERICANS,
-    "Martinique": REGION_OF_THE_AMERICANS,  # ?????????????
     "Colombia": REGION_OF_THE_AMERICANS,
     "Costa Rica": REGION_OF_THE_AMERICANS,
     "Paraguay": REGION_OF_THE_AMERICANS,
-    "St. Martin": REGION_OF_THE_AMERICANS,  # ??????????????
     "Honduras": REGION_OF_THE_AMERICANS,
     "Jamaica": REGION_OF_THE_AMERICANS,
     "Cuba": REGION_OF_THE_AMERICANS,
@@ -140,16 +125,12 @@ region_map = {
     "Panama": REGION_OF_THE_AMERICANS,
     "Bolivia": REGION_OF_THE_AMERICANS,
     "Venezuela": REGION_OF_THE_AMERICANS,
-    "Curacao": REGION_OF_THE_AMERICANS,  # ?????
     "Guatemala": REGION_OF_THE_AMERICANS,
     "Saint Lucia": REGION_OF_THE_AMERICANS,
     "Saint Vincent and the Grenadines": REGION_OF_THE_AMERICANS,
-    "Aruba": REGION_OF_THE_AMERICANS,
     "Antigua and Barbuda": REGION_OF_THE_AMERICANS,
     "Uruguay": REGION_OF_THE_AMERICANS,
     "Trinidad and Tobago": REGION_OF_THE_AMERICANS,
-    "Cayman Islands": REGION_OF_THE_AMERICANS,
-    "Guadeloupe": REGION_OF_THE_AMERICANS,
     "Suriname": REGION_OF_THE_AMERICANS,
     "Bahamas": REGION_OF_THE_AMERICANS,
     "Barbados": REGION_OF_THE_AMERICANS,
@@ -158,10 +139,6 @@ region_map = {
     "Haiti": REGION_OF_THE_AMERICANS,
     "Dominica": REGION_OF_THE_AMERICANS,
     "Grenada": REGION_OF_THE_AMERICANS,
-    "Guam": REGION_OF_THE_AMERICANS,
-    "Puerto Rico": REGION_OF_THE_AMERICANS,
-    "The Bahamas": REGION_OF_THE_AMERICANS,
-    "Bahamas, The": REGION_OF_THE_AMERICANS,
     "Belize": REGION_OF_THE_AMERICANS,
     #####################################################################
     "Algeria": AFRICAN_REGION,
@@ -171,12 +148,10 @@ region_map = {
     "Tunisia": AFRICAN_REGION,
     "South Africa": AFRICAN_REGION,
     "Togo": AFRICAN_REGION,
-    "French Guiana": AFRICAN_REGION,
     "Cameroon": AFRICAN_REGION,
     "Congo (Kinshasa)": AFRICAN_REGION,
     "Cote d'Ivoire": AFRICAN_REGION,
     "Burkina Faso": AFRICAN_REGION,
-    "Reunion": AFRICAN_REGION,
     "Ghana": AFRICAN_REGION,
     "Namibia": AFRICAN_REGION,
     "Seychelles": AFRICAN_REGION,
@@ -191,8 +166,6 @@ region_map = {
     "Equatorial Guinea": AFRICAN_REGION,
     "Central African Republic": AFRICAN_REGION,
     "Ethiopia": AFRICAN_REGION,
-    "Gambia, The": AFRICAN_REGION,
-    "The Gambia": AFRICAN_REGION,
     "Benin": AFRICAN_REGION,
     "Liberia": AFRICAN_REGION,
     "Somalia": AFRICAN_REGION,
@@ -206,19 +179,13 @@ region_map = {
     "Madagascar": AFRICAN_REGION,
     "Cabo Verde": AFRICAN_REGION,
     "Angola": AFRICAN_REGION,
-    "Cape Verde": AFRICAN_REGION,
     "Eritrea": AFRICAN_REGION,
     "Uganda": AFRICAN_REGION,
     "Mozambique": AFRICAN_REGION,
-    "Mayotte": AFRICAN_REGION,
-    "Republic of the Congo": AFRICAN_REGION,
     "Gambia": AFRICAN_REGION,
     "Libya": AFRICAN_REGION,
     #####################################################################
-    "Others": OTHER,
-    "Cruise Ship": OTHER,
     "Diamond Princess": OTHER,
-
 }
 
 region_names = {
@@ -233,3 +200,21 @@ region_names = {
 }
 
 REGION_COUNT = OTHER + 1
+
+if __name__ == "__main__":
+    import csv
+    regions_in_file = []
+    with open("./corona/data/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv") as datafile:
+        datafile_reader = csv.reader(datafile, delimiter=",", quotechar='"')
+        for row in datafile_reader:
+            if not regions_in_file.__contains__(row[1]):
+                regions_in_file.append(row[1])
+
+    regions_in_regionmap = [key for key in region_map.keys()]
+    for region in regions_in_file:
+        if not regions_in_regionmap.__contains__(region):
+            print("missing " + region)
+        else:
+            regions_in_regionmap.remove(region)
+    
+    print(regions_in_regionmap)
