@@ -218,3 +218,17 @@ if __name__ == "__main__":
             regions_in_regionmap.remove(region)
     
     print(regions_in_regionmap)
+
+    if False:
+        for region in range(REGION_COUNT):
+            print('<optgroup label="{'+ "{ 'pages.corona.names." + region_names[region] + "' | translate }" + '}">')
+            for key in region_map.keys():
+                if region_map[key] == region:
+                    escaped_key = key.replace(" ", "_")    
+                    print('<option value="' + escaped_key + '" translate>pages.corona.names.' + escaped_key + "</option>")
+            print('</optgroup>')
+
+    if True:
+        for key in region_map.keys():
+            escaped_key = key.replace(" ", "_")    
+            print('"' + escaped_key + '": "' + key + '",')
