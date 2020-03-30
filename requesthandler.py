@@ -9,7 +9,7 @@ from config import *
 from mysqlconnection import MySqlConnection
 from sessionmanager import SessionManager
 from passwords import *
-from corona.data import datasets_json, topcountries_json
+from corona.data import datasets_json, topcountries_json, serious_dataset, serious_last_refreshed
 
 if not os.path.exists(res_folder):
     os.mkdir(res_folder)
@@ -100,6 +100,14 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
             self.wfile.write(topcountries_json)
+        elif splitted[1] == "coronaserious":
+            self.send_response(200)
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            if serious_dataset.__contains__(splitted[2]):
+                self.wfile.write((serious_last_refreshed + "\n" + serious_dataset[splitted[2]]).encode())
+            else:
+                self.wfile.write((serious_last_refreshed + "\n" +"not-available").encode())
         elif splitted[1] == "resource":
             if len(splitted) == 3:
                 try:

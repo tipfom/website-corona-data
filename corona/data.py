@@ -10,7 +10,7 @@ import scipy.optimize
 
 from corona.load import get_data_from_file
 from corona.regions import *
-
+import corona.fetch_bno
 
 def exp_fit_function(x, a, b):
     return a * np.exp(b * x)
@@ -198,8 +198,14 @@ def prepare_data():
     for k in temp_datasets.keys():
         temp_datasets_json.update({k: json.dumps(temp_datasets[k]).encode()})
 
-    return (temp_topcountries_json, temp_datasets_json)
+    from importlib import reload
+    corona.fetch_bno = reload(corona.fetch_bno)
+    serious_dataset = corona.fetch_bno.try_get_bno_seriouscases()
+    
+    return (temp_topcountries_json, temp_datasets_json, serious_dataset)
 
+from datetime import date
+serious_last_refreshed = date.today().isoformat()
 
 def update_data():
     print("Updating Corona Data")
@@ -212,11 +218,17 @@ def update_data():
 
     print("Git Pull completed")
 
-    topcountries_json, datasets_json = prepare_data()
+    topcountries_json, datasets_json, temp_serious_dataset = prepare_data()
+    if temp_serious_dataset != None:
+        serious_dataset = temp_serious_dataset
+        serious_last_refreshed = date.today().isoformat()
+        print("fetched from BNO")
+    else:
+        print("fetch failed")
     scheduler.enter(60 * 60 * 4, 1, update_data)
 
 
-topcountries_json, datasets_json = prepare_data()
+topcountries_json, datasets_json, serious_dataset = prepare_data()
 
 scheduler = sched.scheduler(time.time, time.sleep)
 
