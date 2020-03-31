@@ -206,8 +206,14 @@ def prepare_data():
 
 from datetime import date
 serious_last_refreshed = date.today().isoformat()
+topcountries_json, datasets_json, serious_dataset = prepare_data()
 
 def update_data():
+    global serious_last_refreshed
+    global topcountries_json
+    global datasets_json
+    global serious_dataset
+
     print("Updating Corona Data")
     repo = git.cmd.Git("./corona/data")
     repo.fetch("--all")
@@ -226,9 +232,6 @@ def update_data():
     else:
         print("fetch failed")
     scheduler.enter(60 * 60 * 4, 1, update_data)
-
-
-topcountries_json, datasets_json, serious_dataset = prepare_data()
 
 scheduler = sched.scheduler(time.time, time.sleep)
 
