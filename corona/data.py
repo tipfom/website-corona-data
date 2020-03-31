@@ -12,6 +12,7 @@ from corona.load import get_data_from_file
 from corona.regions import *
 import corona.fetch_bno
 
+
 def exp_fit_function(x, a, b):
     return a * np.exp(b * x)
 
@@ -59,6 +60,7 @@ data_submodule_path = submodule_path + "csse_covid_19_data/csse_covid_19_time_se
 datafile_confirmed = data_submodule_path + "time_series_covid19_confirmed_global.csv"
 datafile_deaths = data_submodule_path + "time_series_covid19_deaths_global.csv"
 datafile_recovered = data_submodule_path + "time_series_covid19_recovered_global.csv"
+
 
 def prepare_data():
     recovered = get_data_from_file(datafile_recovered)
@@ -190,6 +192,24 @@ def prepare_data():
                 "confirmed": confirmed.total.tolist(),
                 "dead": dead.total.tolist(),
                 "recovered": recovered.total.tolist(),
+                "fits": {
+                    "exp": generate_fits(
+                        fit_data_x,
+                        confirmed.total,
+                        fit_start,
+                        [10, 0.2],
+                        exp_fit_function,
+                        exp_fit_jacobian,
+                    ),
+                    "sig": generate_fits(
+                        fit_data_x,
+                        confirmed.total,
+                        fit_start,
+                        [np.max(confirmed.total), 0.4, 30],
+                        sig_fit_function,
+                        sig_fit_jacobian,
+                    ),
+                },
             }
         }
     )
@@ -199,14 +219,18 @@ def prepare_data():
         temp_datasets_json.update({k: json.dumps(temp_datasets[k]).encode()})
 
     from importlib import reload
+
     corona.fetch_bno = reload(corona.fetch_bno)
     serious_dataset = corona.fetch_bno.try_get_bno_seriouscases()
-    
+
     return (temp_topcountries_json, temp_datasets_json, serious_dataset)
 
+
 from datetime import date
+
 serious_last_refreshed = date.today().isoformat()
 topcountries_json, datasets_json, serious_dataset = prepare_data()
+
 
 def update_data():
     global serious_last_refreshed
@@ -232,6 +256,7 @@ def update_data():
     else:
         print("fetch failed")
     scheduler.enter(60 * 60 * 4, 1, update_data)
+
 
 scheduler = sched.scheduler(time.time, time.sleep)
 
