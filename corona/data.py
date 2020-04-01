@@ -3,14 +3,15 @@ import math
 import sched
 import threading
 import time
+from datetime import date, datetime
 
 import git
 import numpy as np
 import scipy.optimize
 
+import corona.fetch_bno
 from corona.load import get_data_from_file
 from corona.regions import *
-import corona.fetch_bno
 
 
 def exp_fit_function(x, a, b):
@@ -226,8 +227,6 @@ def prepare_data():
     return (temp_topcountries_json, temp_datasets_json, serious_dataset)
 
 
-from datetime import date
-
 serious_last_refreshed = date.today().isoformat()
 topcountries_json, datasets_json, serious_dataset = prepare_data()
 
@@ -243,19 +242,32 @@ def update_data():
     repo.fetch("--all")
     repo.reset("--hard", "origin/master")
     repo.pull("origin", "master")
-    output = repo.checkout("master")
-    print(output)
-
+    repo.checkout("master")
     print("Git Pull completed")
 
     topcountries_json, datasets_json, temp_serious_dataset = prepare_data()
     if temp_serious_dataset != None:
         serious_dataset = temp_serious_dataset
-        serious_last_refreshed = date.today().isoformat()
+        serious_last_refreshed = datetime.now().isoformat()
         print("fetched from BNO")
     else:
         print("fetch failed")
     scheduler.enter(60 * 60 * 4, 1, update_data)
+
+
+def get_dataset(country):
+    return datasets_json[country]
+
+
+def get_topcountries():
+    return topcountries_json
+
+
+def get_serious_data(country):
+    if serious_dataset.__contains__(country):
+        return (serious_last_refreshed + "\n" + serious_dataset[country]).encode()
+    else:
+        return (serious_last_refreshed + "\n" + "not-available").encode()
 
 
 scheduler = sched.scheduler(time.time, time.sleep)
