@@ -9,7 +9,7 @@ from config import *
 from mysqlconnection import MySqlConnection
 from sessionmanager import SessionManager
 from passwords import *
-from corona.data import get_dataset, get_topcountries, get_serious_data
+from corona.data import get_dataset, get_topcountries, get_serious_data, get_test_data
 
 if not os.path.exists(res_folder):
     os.mkdir(res_folder)
@@ -105,6 +105,11 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
             self.wfile.write(get_serious_data(splitted[2]))
+        elif splitted[1] == "coronatests":
+            self.send_response(200)
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(get_test_data())
         elif splitted[1] == "resource":
             if len(splitted) == 3:
                 try:

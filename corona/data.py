@@ -12,7 +12,7 @@ import scipy.optimize
 import corona.fetch_bno
 from corona.load import get_data_from_file
 from corona.regions import *
-
+import corona.fetch_tests
 
 def exp_fit_function(x, a, b):
     return a * np.exp(b * x)
@@ -224,18 +224,21 @@ def prepare_data():
     corona.fetch_bno = reload(corona.fetch_bno)
     serious_dataset = corona.fetch_bno.try_get_bno_seriouscases()
 
-    return (temp_topcountries_json, temp_datasets_json, serious_dataset)
+    corona.fetch_tests = reload(corona.fetch_tests)
+    tests = corona.fetch_tests.try_get_tests()
+
+    return (temp_topcountries_json, temp_datasets_json, serious_dataset, tests)
 
 
 serious_last_refreshed = date.today().isoformat()
-topcountries_json, datasets_json, serious_dataset = prepare_data()
-
+topcountries_json, datasets_json, serious_dataset, tests_json = prepare_data()
 
 def update_data():
     global serious_last_refreshed
     global topcountries_json
     global datasets_json
     global serious_dataset
+    global tests_json
 
     print("Updating Corona Data")
     repo = git.cmd.Git("./corona/data")
@@ -245,13 +248,19 @@ def update_data():
     repo.checkout("master")
     print("Git Pull completed")
 
-    topcountries_json, datasets_json, temp_serious_dataset = prepare_data()
+    topcountries_json, datasets_json, temp_serious_dataset, temp_tests_json = prepare_data()
     if temp_serious_dataset != None:
         serious_dataset = temp_serious_dataset
         serious_last_refreshed = datetime.now().isoformat()
         print("fetched from BNO")
     else:
-        print("fetch failed")
+        print("fetch BNO failed")
+    if temp_tests_json != None:
+        tests_json = temp_tests_json
+        print("fetched tests")
+    else:
+        print("fetch tests failed")
+
     scheduler.enter(60 * 60 * 4, 1, update_data)
 
 
@@ -269,6 +278,8 @@ def get_serious_data(country):
     else:
         return (serious_last_refreshed + "\n" + "not-available").encode()
 
+def get_test_data():
+    return tests_json
 
 scheduler = sched.scheduler(time.time, time.sleep)
 
