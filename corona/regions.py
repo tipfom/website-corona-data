@@ -88,6 +88,7 @@ region_map = {
     "Kyrgyzstan": SOUTH_EAST_ASIA_REGION,  # ??????????????
     "Timor-Leste": SOUTH_EAST_ASIA_REGION,
     "Laos": SOUTH_EAST_ASIA_REGION,
+    "Burma": SOUTH_EAST_ASIA_REGION,
     #####################################################################
     "Armenia": EASTERN_MEDITERRANEAN_REGION,  # ????????????
     "Iran": EASTERN_MEDITERRANEAN_REGION,
@@ -105,6 +106,7 @@ region_map = {
     "Jordan": EASTERN_MEDITERRANEAN_REGION,  # ??????????????
     "Israel": EASTERN_MEDITERRANEAN_REGION,
     "Syria": EASTERN_MEDITERRANEAN_REGION,
+    "West Bank and Gaza": EASTERN_MEDITERRANEAN_REGION,
     #####################################################################
     "US": REGION_OF_THE_AMERICANS,
     "Canada": REGION_OF_THE_AMERICANS,
@@ -140,6 +142,7 @@ region_map = {
     "Dominica": REGION_OF_THE_AMERICANS,
     "Grenada": REGION_OF_THE_AMERICANS,
     "Belize": REGION_OF_THE_AMERICANS,
+    "Saint Kitts and Nevis": REGION_OF_THE_AMERICANS,
     #####################################################################
     "Algeria": AFRICAN_REGION,
     "Nigeria": AFRICAN_REGION,
@@ -184,8 +187,14 @@ region_map = {
     "Mozambique": AFRICAN_REGION,
     "Gambia": AFRICAN_REGION,
     "Libya": AFRICAN_REGION,
+    "Guinea-Bissau": AFRICAN_REGION,
+    "Mali": AFRICAN_REGION,
+    "Botswana": AFRICAN_REGION,
+    "Burundi": AFRICAN_REGION,
+    "Sierra Leone": AFRICAN_REGION,
     #####################################################################
     "Diamond Princess": OTHER,
+    "MS Zaandam": OTHER,
 }
 
 region_names = {
@@ -228,7 +237,7 @@ if __name__ == "__main__":
                     print('<option value="' + escaped_key + '" translate>pages.corona.names.' + escaped_key + "</option>")
             print('</optgroup>')
 
-    if True:
+    if False:
         for key in region_map.keys():
             escaped_key = key.replace(" ", "_")    
             print('"' + escaped_key + '": "' + key + '",')
