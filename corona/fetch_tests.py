@@ -4,6 +4,7 @@ country_map = {
     "S. Korea": "Korea, South",
     "UK": "United Kingdom",
     "TOTAL": "global",
+    "Myanmar": "Burma",
 }
 
 
