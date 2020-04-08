@@ -195,6 +195,7 @@ region_map = {
     "Sao Tome and Principe": AFRICAN_REGION,
     "Western Sahara": AFRICAN_REGION,
     "South Sudan": AFRICAN_REGION,
+    "Malawi": AFRICAN_REGION,
     #####################################################################
     "Diamond Princess": OTHER,
     "MS Zaandam": OTHER,
