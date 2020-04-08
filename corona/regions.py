@@ -192,6 +192,9 @@ region_map = {
     "Botswana": AFRICAN_REGION,
     "Burundi": AFRICAN_REGION,
     "Sierra Leone": AFRICAN_REGION,
+    "Sao Tome and Principe": AFRICAN_REGION,
+    "Western Sahara": AFRICAN_REGION,
+    "South Sudan": AFRICAN_REGION,
     #####################################################################
     "Diamond Princess": OTHER,
     "MS Zaandam": OTHER,
