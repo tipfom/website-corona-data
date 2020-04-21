@@ -4,15 +4,17 @@ import sched
 import threading
 import time
 from datetime import date, datetime
+from importlib import reload
 
 import git
 import numpy as np
 import scipy.optimize
 
 import corona.fetch_bno
+import corona.fetch_tests
 from corona.load import get_data_from_file
 from corona.regions import *
-import corona.fetch_tests
+
 
 def exp_fit_function(x, a, b):
     return a * np.exp(b * x)
@@ -62,8 +64,18 @@ datafile_confirmed = data_submodule_path + "time_series_covid19_confirmed_global
 datafile_deaths = data_submodule_path + "time_series_covid19_deaths_global.csv"
 datafile_recovered = data_submodule_path + "time_series_covid19_recovered_global.csv"
 
+last_tests_data = None
+last_tests_data_refresh = date.today().isoformat()
+last_serious_data = None
+last_serious_data_refresh = date.today().isoformat()
+
 
 def prepare_data():
+    global last_tests_data
+    global last_tests_data_refresh
+    global last_serious_data
+    global last_serious_data_refresh
+
     recovered = get_data_from_file(datafile_recovered)
     confirmed = get_data_from_file(datafile_confirmed)
     dead = get_data_from_file(datafile_deaths)
@@ -78,125 +90,110 @@ def prepare_data():
     dead_row = dead.total - dead_china
     confirmed_row = confirmed.total - confirmed_china
 
-    temp_topcountries = []
-    for i in range(len(confirmed.total)):
-        topcountries_today = {}
-        for c in confirmed.by_country.keys():
-            topcountries_today.update({c: confirmed.by_country[c][i]})
-            if len(topcountries_today) > 5:
-                min_country = ""
-                min_infected = 1e10
-                for tc in topcountries_today.keys():
-                    if topcountries_today[tc] < min_infected:
-                        min_infected = topcountries_today[tc]
-                        min_country = tc
-                del topcountries_today[min_country]
-        temp_topcountries.append(topcountries_today)
-
-    temp_topcountries_json = json.dumps(temp_topcountries).encode()
-
     fit_start = 16
     fit_data_x = np.arange(0, entries)
-    temp_datasets = {}
+
+    corona.fetch_bno = reload(corona.fetch_bno)
+    serious_data = {}
+    try:
+        serious_data = corona.fetch_bno.try_get_bno_seriouscases()
+    except:
+        pass
+    if len(serious_data) == 0:
+        print("serious cases pull failed")
+        serious_data = last_serious_data
+    else:
+        last_serious_data = serious_data
+        last_serious_data_refresh = date.today().isoformat()
+
+    corona.fetch_tests = reload(corona.fetch_tests)
+    tests_data = {}
+    try:
+        tests_data = corona.fetch_tests.try_get_tests()
+    except:
+        pass
+    if len(tests_data) == 0:
+        print("tests pull failed")
+        tests_data = last_tests_data
+    else:
+        last_tests_data = tests_data
+        last_tests_data_refresh = date.today().isoformat()
+
+    temp_overview_dataset = {}
+    temp_detail_datasets = {}
 
     for i in range(REGION_COUNT):
-        temp_datasets.update(
+        temp_detail_datasets.update(
+            {
+                region_names[i]: {
+                    "exp": generate_fits(
+                        fit_data_x,
+                        confirmed.by_region[i],
+                        fit_start,
+                        [10, 0.2],
+                        exp_fit_function,
+                        exp_fit_jacobian,
+                    ),
+                    "sig": generate_fits(
+                        fit_data_x,
+                        confirmed.by_region[i],
+                        fit_start,
+                        [np.max(confirmed.by_region[i]), 0.4, 20],
+                        sig_fit_function,
+                        sig_fit_jacobian,
+                    ),
+                }
+            }
+        )
+        temp_overview_dataset.update(
             {
                 region_names[i]: {
                     "confirmed": confirmed.by_region[i].tolist(),
                     "dead": dead.by_region[i].tolist(),
                     "recovered": recovered.by_region[i].tolist(),
-                    "fits": {
-                        "exp": generate_fits(
-                            fit_data_x,
-                            confirmed.by_region[i],
-                            fit_start,
-                            [10, 0.2],
-                            exp_fit_function,
-                            exp_fit_jacobian,
-                        ),
-                        "sig": generate_fits(
-                            fit_data_x,
-                            confirmed.by_region[i],
-                            fit_start,
-                            [np.max(confirmed.by_region[i]), 0.4, 20],
-                            sig_fit_function,
-                            sig_fit_jacobian,
-                        ),
-                    },
                 }
             }
         )
 
-    temp_datasets.update(
+    temp_detail_datasets.update(
+        {
+            "row": {
+                "exp": generate_fits(
+                    fit_data_x,
+                    confirmed_row,
+                    fit_start,
+                    [10, 0.2],
+                    exp_fit_function,
+                    exp_fit_jacobian,
+                ),
+                "sig": generate_fits(
+                    fit_data_x,
+                    confirmed_row,
+                    fit_start,
+                    [np.max(confirmed_row), 0.4, 20],
+                    sig_fit_function,
+                    sig_fit_jacobian,
+                ),
+            }
+        }
+    )
+    temp_overview_dataset.update(
         {
             "row": {
                 "confirmed": confirmed_row.tolist(),
                 "dead": dead_row.tolist(),
                 "recovered": recovered_row.tolist(),
-                "fits": {
-                    "exp": generate_fits(
-                        fit_data_x,
-                        confirmed_row,
-                        fit_start,
-                        [10, 0.2],
-                        exp_fit_function,
-                        exp_fit_jacobian,
-                    ),
-                    "sig": generate_fits(
-                        fit_data_x,
-                        confirmed_row,
-                        fit_start,
-                        [np.max(confirmed_row), 0.4, 20],
-                        sig_fit_function,
-                        sig_fit_jacobian,
-                    ),
-                },
             }
         }
     )
 
     for n in confirmed.by_country.keys():
-        temp_datasets.update(
+        temp_detail_datasets.update(
             {
                 n.replace(" ", "_"): {
-                    "confirmed": confirmed.by_country[n].tolist(),
-                    "dead": dead.by_country[n].tolist(),
-                    "recovered": recovered.by_country[n].tolist()
-                    if recovered.by_country.__contains__(n)
-                    else "undefined",
-                    "fits": {
-                        "exp": generate_fits(
-                            fit_data_x,
-                            confirmed.by_country[n],
-                            fit_start,
-                            [10, 0.2],
-                            exp_fit_function,
-                            exp_fit_jacobian,
-                        ),
-                        "sig": generate_fits(
-                            fit_data_x,
-                            confirmed.by_country[n],
-                            fit_start,
-                            [np.max(confirmed.by_country[n]), 0.4, 30],
-                            sig_fit_function,
-                            sig_fit_jacobian,
-                        ),
-                    },
-                }
-            }
-        )
-
-    temp_datasets.update(
-        {
-            "global": {
-                "confirmed": confirmed.total.tolist(),
-                "dead": dead.total.tolist(),
-                "recovered": recovered.total.tolist(),
-                "fits": {
                     "exp": generate_fits(
                         fit_data_x,
-                        confirmed.total,
+                        confirmed.by_country[n],
                         fit_start,
                         [10, 0.2],
                         exp_fit_function,
@@ -204,41 +201,96 @@ def prepare_data():
                     ),
                     "sig": generate_fits(
                         fit_data_x,
-                        confirmed.total,
+                        confirmed.by_country[n],
                         fit_start,
-                        [np.max(confirmed.total), 0.4, 30],
+                        [np.max(confirmed.by_country[n]), 0.4, 30],
                         sig_fit_function,
                         sig_fit_jacobian,
                     ),
+                }
+            }
+        )
+        temp_overview_dataset.update(
+            {
+                n.replace(" ", "_"): {
+                    "confirmed": confirmed.by_country[n].tolist(),
+                    "dead": dead.by_country[n].tolist(),
+                    "recovered": recovered.by_country[n].tolist(),
+                    "tests": tests_data[n]
+                    if tests_data.__contains__(n)
+                    else "undefined",
+                    "serious": {
+                        "value": serious_data[n]
+                        if serious_data.__contains__(n)
+                        else "undefined",
+                        "updated": last_serious_data_refresh,
+                    },
+                }
+            }
+        )
+
+    temp_detail_datasets.update(
+        {
+            "global": {
+                "exp": generate_fits(
+                    fit_data_x,
+                    confirmed.total,
+                    fit_start,
+                    [10, 0.2],
+                    exp_fit_function,
+                    exp_fit_jacobian,
+                ),
+                "sig": generate_fits(
+                    fit_data_x,
+                    confirmed.total,
+                    fit_start,
+                    [np.max(confirmed.total), 0.4, 30],
+                    sig_fit_function,
+                    sig_fit_jacobian,
+                ),
+            },
+        }
+    )
+    temp_overview_dataset.update(
+        {
+            "global": {
+                "confirmed": confirmed.total.tolist(),
+                "dead": dead.total.tolist(),
+                "recovered": recovered.total.tolist(),
+                "tests": tests_data["global"]
+                if tests_data.__contains__("global")
+                else "undefined",
+                "serious": {
+                    "value": serious_data["global"]
+                    if serious_data.__contains__("global")
+                    else "undefined",
+                    "updated": last_serious_data_refresh,
                 },
             }
         }
     )
 
-    temp_datasets_json = {}
-    for k in temp_datasets.keys():
-        temp_datasets_json.update({k: json.dumps(temp_datasets[k]).encode()})
+    temp_details_json = {}
+    for k in temp_detail_datasets.keys():
+        temp_details_json.update({k: json.dumps(temp_detail_datasets[k]).encode()})
 
-    from importlib import reload
-
-    corona.fetch_bno = reload(corona.fetch_bno)
-    serious_dataset = corona.fetch_bno.try_get_bno_seriouscases()
-
-    corona.fetch_tests = reload(corona.fetch_tests)
-    tests = corona.fetch_tests.try_get_tests()
-
-    return (temp_topcountries_json, temp_datasets_json, serious_dataset, tests)
+    return (json.dumps(temp_overview_dataset).encode(), temp_details_json)
 
 
-serious_last_refreshed = date.today().isoformat()
-topcountries_json, datasets_json, serious_dataset, tests_json = prepare_data()
+overview_json, details_json = prepare_data()
+
+
+def get_detail_dataset(country):
+    return details_json[country]
+
+
+def get_overview_dataset():
+    return overview_json
+
 
 def update_data():
-    global serious_last_refreshed
-    global topcountries_json
-    global datasets_json
-    global serious_dataset
-    global tests_json
+    global overview_json
+    global details_json
 
     print("Updating Corona Data")
     repo = git.cmd.Git("./corona/data")
@@ -248,38 +300,10 @@ def update_data():
     repo.checkout("master")
     print("Git Pull completed")
 
-    topcountries_json, datasets_json, temp_serious_dataset, temp_tests_json = prepare_data()
-    if temp_serious_dataset != None:
-        serious_dataset = temp_serious_dataset
-        serious_last_refreshed = datetime.now().isoformat()
-        print("fetched from BNO")
-    else:
-        print("fetch BNO failed")
-    if temp_tests_json != None:
-        tests_json = temp_tests_json
-        print("fetched tests")
-    else:
-        print("fetch tests failed")
+    overview_json, details_json = prepare_data()
 
     scheduler.enter(60 * 60 * 4, 1, update_data)
 
-
-def get_dataset(country):
-    return datasets_json[country]
-
-
-def get_topcountries():
-    return topcountries_json
-
-
-def get_serious_data(country):
-    if serious_dataset.__contains__(country):
-        return (serious_last_refreshed + "\n" + serious_dataset[country]).encode()
-    else:
-        return (serious_last_refreshed + "\n" + "not-available").encode()
-
-def get_test_data():
-    return tests_json
 
 scheduler = sched.scheduler(time.time, time.sleep)
 

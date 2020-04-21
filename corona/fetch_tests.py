@@ -50,7 +50,7 @@ def try_get_tests():
             except Exception:
                 pass
 
-    return json.dumps(test_data).encode()
+    return test_data
 
 
 if __name__ == "__main__":
