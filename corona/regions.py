@@ -107,6 +107,7 @@ region_map = {
     "Israel": EASTERN_MEDITERRANEAN_REGION,
     "Syria": EASTERN_MEDITERRANEAN_REGION,
     "West Bank and Gaza": EASTERN_MEDITERRANEAN_REGION,
+    "Yemen": EASTERN_MEDITERRANEAN_REGION,
     #####################################################################
     "US": REGION_OF_THE_AMERICANS,
     "Canada": REGION_OF_THE_AMERICANS,
