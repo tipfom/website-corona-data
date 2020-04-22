@@ -43,15 +43,17 @@ def generate_fits(x, y, start, p0, function, jacobian):
     for i in range(start, len(x) + 1):
         try:
             popt, pcov = scipy.optimize.curve_fit(
-                function, x[:i], y[:i], p0, jac=jacobian, maxfev=1000
+                function, x[:i], y[:i], p0, jac=jacobian, maxfev=10000
             )
             perr = np.sqrt(np.diag(pcov))
             for k in range(len(popt)):
                 if math.isnan(popt[k]) or math.isinf(popt[k]):
-                    popt[k] = 10e10
+                    result.append({"param": "undefined", "err": "undefined"})
+                    continue
             for k in range(len(perr)):
                 if math.isnan(perr[k]) or math.isinf(perr[k]):
-                    perr[k] = 10e10
+                    result.append({"param": "undefined", "err": "undefined"})
+                    continue
             result.append({"param": popt.tolist(), "err": perr.tolist()})
         except:
             result.append({"param": "undefined", "err": "undefined"})
@@ -68,7 +70,6 @@ last_tests_data = None
 last_tests_data_refresh = date.today().isoformat()
 last_serious_data = None
 last_serious_data_refresh = date.today().isoformat()
-
 
 def prepare_data():
     global last_tests_data
