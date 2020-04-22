@@ -46,14 +46,20 @@ def generate_fits(x, y, start, p0, function, jacobian):
                 function, x[:i], y[:i], p0, jac=jacobian, maxfev=10000
             )
             perr = np.sqrt(np.diag(pcov))
+            done = False
             for k in range(len(popt)):
                 if math.isnan(popt[k]) or math.isinf(popt[k]):
                     result.append({"param": "undefined", "err": "undefined"})
-                    continue
+                    done = True
+                    break
+            if Done:
+                break
             for k in range(len(perr)):
                 if math.isnan(perr[k]) or math.isinf(perr[k]):
                     result.append({"param": "undefined", "err": "undefined"})
                     continue
+            if Done:
+                break
             result.append({"param": popt.tolist(), "err": perr.tolist()})
         except:
             result.append({"param": "undefined", "err": "undefined"})
@@ -70,6 +76,7 @@ last_tests_data = None
 last_tests_data_refresh = date.today().isoformat()
 last_serious_data = None
 last_serious_data_refresh = date.today().isoformat()
+
 
 def prepare_data():
     global last_tests_data
