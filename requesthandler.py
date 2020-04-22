@@ -179,7 +179,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                                 {
                                     "lang": file_row[0],
                                     "path": file_row[1],
-                                    "creation_time": version["creation_time"].isoformat(),
+                                    "creation_time": version[
+                                        "creation_time"
+                                    ].isoformat(),
                                 }
                             )
                         files.append(version_files)
@@ -272,6 +274,43 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             except Exception:
                 self.send_response(400)
                 self.end_headers()
+        elif parsed_path.path.startswith("/contactform"):                  
+            self.send_response(200)
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+
+            import smtplib
+
+            content_len = int(self.headers.get("Content-Length"))
+            post_content = self.rfile.read(content_len)
+
+            gmail_user = "tipfom.pok@gmail.com"
+            gmail_password = "idiubpukwfnzthui"
+            sent_from = gmail_user
+            to = ["timpokart@outlook.de"]
+            subject = "Website Contact Form"
+            body = post_content
+
+            email_text = f"""
+            From: {sent_from}
+            To: {", ".join(to)}
+            Subject: {subject}
+
+
+            Name: {parsed_query["name"][0]}
+            E-mail: {parsed_query["mail"][0]}
+
+            {body.decode()}"""
+
+            try:
+                server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+                server.ehlo()
+                server.login(gmail_user, gmail_password)
+                server.sendmail(sent_from, to, email_text)
+                server.close()
+                self.wfile.write("success".encode())
+            except:
+                self.wfile.write("error".encode())
 
         elif is_authorized:
             if parsed_path.path.startswith("/resource"):
