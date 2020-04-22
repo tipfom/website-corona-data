@@ -57,7 +57,8 @@ def generate_fits(x, y, start, p0, function, jacobian):
             for k in range(len(perr)):
                 if math.isnan(perr[k]) or math.isinf(perr[k]):
                     result.append({"param": "undefined", "err": "undefined"})
-                    continue
+                    done = True
+                    break
             if Done:
                 break
             result.append({"param": popt.tolist(), "err": perr.tolist()})
