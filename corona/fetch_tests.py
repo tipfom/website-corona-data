@@ -29,13 +29,15 @@ def try_get_tests():
         columns = row.split("</td>")
         if len(columns) > 11:
             try:
-                name = columns[0].split("<a ")[1].split(">")[1].replace("</a", "")
+                name = columns[1].split("<a ")[1]
+                name = name.split(">")[1]
+                name = name.replace("</a", "")
                 country = name
                 if country_map.__contains__(country):
                     country = country_map[country]
                 country = country.replace(" ", "_")
-                cases = columns[1].split(">")[1]
-                tests = columns[10].split(">")[1]
+                cases = columns[2].split(">")[1]
+                tests = columns[11].split(">")[1]
                 if tests != "":
                     test_data.update(
                         {
@@ -47,7 +49,8 @@ def try_get_tests():
                             }
                         }
                     )
-            except Exception:
+            except Exception as e:
+                print(e)
                 pass
 
     return test_data
