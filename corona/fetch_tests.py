@@ -27,7 +27,7 @@ def try_get_tests():
     test_data = {}
     for row in tablebody.split("</tr>"):
         columns = row.split("</td>")
-        if len(columns) > 11:
+        if len(columns) > 12:
             try:
                 name = columns[1].split("<a ")[1]
                 name = name.split(">")[1]
@@ -37,7 +37,7 @@ def try_get_tests():
                     country = country_map[country]
                 country = country.replace(" ", "_")
                 cases = columns[2].split(">")[1]
-                tests = columns[11].split(">")[1]
+                tests = columns[12].split(">")[1]
                 if tests != "":
                     test_data.update(
                         {
