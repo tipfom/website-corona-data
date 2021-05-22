@@ -67,7 +67,7 @@ def generate_fits(x, y, start, p0, function, jacobian):
     return result
 
 
-submodule_path = "./corona/data/"
+submodule_path = "./data/"
 data_submodule_path = submodule_path + "csse_covid_19_data/csse_covid_19_time_series/"
 datafile_confirmed = data_submodule_path + "time_series_covid19_confirmed_global.csv"
 datafile_deaths = data_submodule_path + "time_series_covid19_deaths_global.csv"
@@ -139,7 +139,7 @@ def prepare_data():
                         fit_data_x,
                         confirmed.by_region[i],
                         fit_start,
-                        [10, 0.2],
+                        [confirmed.by_region[i][0], 0.1],
                         exp_fit_function,
                         exp_fit_jacobian,
                     ),
@@ -147,7 +147,7 @@ def prepare_data():
                         fit_data_x,
                         confirmed.by_region[i],
                         fit_start,
-                        [np.max(confirmed.by_region[i]), 0.4, len(confirmed.by_region[i]) / 2],
+                        [np.max(confirmed.by_region[i]), 0.2, len(confirmed.by_region[i]) / 2],
                         sig_fit_function,
                         sig_fit_jacobian,
                     ),
@@ -171,7 +171,7 @@ def prepare_data():
                     fit_data_x,
                     confirmed_row,
                     fit_start,
-                    [10, 0.2],
+                    [confirmed_row[0], 0.1],
                     exp_fit_function,
                     exp_fit_jacobian,
                 ),
@@ -179,7 +179,7 @@ def prepare_data():
                     fit_data_x,
                     confirmed_row,
                     fit_start,
-                    [np.max(confirmed_row), 0.4, len(confirmed_row) / 2],
+                    [np.max(confirmed_row), 0.2, len(confirmed_row) / 2],
                     sig_fit_function,
                     sig_fit_jacobian,
                 ),
@@ -204,7 +204,7 @@ def prepare_data():
                         fit_data_x,
                         confirmed.by_country[n],
                         fit_start,
-                        [10, 0.2],
+                        [confirmed.by_country[n][0], 0.1],
                         exp_fit_function,
                         exp_fit_jacobian,
                     ),
@@ -212,7 +212,7 @@ def prepare_data():
                         fit_data_x,
                         confirmed.by_country[n],
                         fit_start,
-                        [np.max(confirmed.by_country[n]), 0.4, len(confirmed.by_country[n]) / 2],
+                        [np.max(confirmed.by_country[n]), 0.2, len(confirmed.by_country[n]) / 2],
                         sig_fit_function,
                         sig_fit_jacobian,
                     ),
@@ -245,7 +245,7 @@ def prepare_data():
                     fit_data_x,
                     confirmed.total,
                     fit_start,
-                    [10, 0.2],
+                    [confirmed.total[0], 0.1],
                     exp_fit_function,
                     exp_fit_jacobian,
                 ),
@@ -253,7 +253,7 @@ def prepare_data():
                     fit_data_x,
                     confirmed.total,
                     fit_start,
-                    [np.max(confirmed.total), 0.4, len(confirmed.total) / 2],
+                    [np.max(confirmed.total), 0.2, len(confirmed.total) / 2],
                     sig_fit_function,
                     sig_fit_jacobian,
                 ),
@@ -301,8 +301,10 @@ def update_data():
     global overview_json
     global details_json
 
+    scheduler.enter(60 * 60 * 4, 1, update_data)
+
     print("Updating Corona Data")
-    repo = git.cmd.Git("./corona/data")
+    repo = git.cmd.Git("./data")
     repo.fetch("--all")
     repo.reset("--hard", "origin/master")
     repo.pull("origin", "master")
@@ -311,11 +313,8 @@ def update_data():
 
     overview_json, details_json = prepare_data()
 
-    scheduler.enter(60 * 60 * 4, 1, update_data)
-
-
 scheduler = sched.scheduler(time.time, time.sleep)
 
-scheduler.enter(60 * 60 * 4, 1, update_data)
+update_data()
 t = threading.Thread(target=scheduler.run)
 t.start()

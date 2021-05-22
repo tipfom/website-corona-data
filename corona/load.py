@@ -36,14 +36,14 @@ def get_data_from_file(filename):
             if not column_by_country.__contains__(country):
                 column_by_country.update({country: 0})
             try:
-                column_by_country[country] += int(data_raw[j][i])
+                column_by_country[country] += int(float(data_raw[j][i]))
             except Exception as e:
                 column_by_country[country] += 0
 
             if corona.regions.region_map.__contains__(country):
                 region = corona.regions.region_map[country]
                 if data_raw[j][i] != "":
-                    column_by_region[region] += int(data_raw[j][i])
+                    column_by_region[region] += int(float(data_raw[j][i]))
             elif i == 4:
                 print("could not find region for " + country)
 
